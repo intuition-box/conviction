@@ -1,0 +1,92 @@
+import { NextRequest, NextResponse } from "next/server";
+import type { Hex } from "viem";
+import { readVaultPair, getCounterVaultId, fetchBatchParticipantCounts } from "@/server/intuition/vaults";
+import { getErrorMessage } from "@/lib/getErrorMessage";
+
+const MAX_BATCH = 50;
+const HEX_TRIPLE = /^0x[0-9a-fA-F]{64}$/;
+
+type VaultEntry = { forAssets: string; againstAssets: string; forCount: number; againstCount: number };
+
+const ZERO_ENTRY: VaultEntry = { forAssets: "0", againstAssets: "0", forCount: 0, againstCount: 0 };
+
+/**
+ * POST /api/vaults/batch
+ *
+ * Fetches aggregate vault stats for multiple triples in one call.
+ * Reads both linear (curveId=1) and progressive (curveId=2) curves.
+ * Person counts are deduplicated across curves via GraphQL distinct_on.
+ *
+ * Body: { tripleIds: string[] }   — max 50
+ * Response: { [tripleId]: { forAssets: string, againstAssets: string, forCount: number, againstCount: number } }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const tripleIds: unknown = body?.tripleIds;
+
+    if (!Array.isArray(tripleIds) || tripleIds.length === 0) {
+      return NextResponse.json({ error: "tripleIds must be a non-empty array" }, { status: 400 });
+    }
+
+    if (tripleIds.length > MAX_BATCH) {
+      return NextResponse.json({ error: `Max ${MAX_BATCH} tripleIds per request` }, { status: 400 });
+    }
+
+    const validIds = tripleIds.filter(
+      (id): id is string => typeof id === "string" && HEX_TRIPLE.test(id),
+    );
+
+    if (validIds.length === 0) {
+      return NextResponse.json({});
+    }
+
+    // Pre-compute counter vault IDs
+    const counterIds = validIds.map((id) => getCounterVaultId(id as Hex));
+
+    // ── On-chain: read 4 vaults per triple (FOR/AGAINST × linear/progressive) ──
+    const vaultResults = await Promise.allSettled(
+      validIds.map(async (tripleId, i) => {
+        const pair = await readVaultPair(tripleId as Hex, counterIds[i]);
+        return {
+          tripleId,
+          forAssets: pair.for.totalAssets.toString(),
+          againstAssets: pair.against.totalAssets.toString(),
+          forCountFallback: pair.for.positionCountFallback,
+          againstCountFallback: pair.against.positionCountFallback,
+        };
+      }),
+    );
+
+    // ── GraphQL: deduplicated person counts (cross-curve unique wallets) ──
+    const gqlCounts = await fetchBatchParticipantCounts(validIds, counterIds);
+
+    // ── Assemble response ──
+    const data: Record<string, VaultEntry> = {};
+
+    for (let i = 0; i < validIds.length; i++) {
+      const result = vaultResults[i];
+
+      if (result.status === "fulfilled") {
+        const { tripleId, forAssets, againstAssets, forCountFallback, againstCountFallback } = result.value;
+        const counts = gqlCounts?.[tripleId];
+        data[tripleId] = {
+          forAssets,
+          againstAssets,
+          forCount: counts?.forCount ?? forCountFallback,
+          againstCount: counts?.againstCount ?? againstCountFallback,
+        };
+      } else {
+        data[validIds[i]] = ZERO_ENTRY;
+      }
+    }
+
+    return NextResponse.json(data);
+  } catch (error: unknown) {
+    console.error("Error in POST /api/vaults/batch:", error);
+    return NextResponse.json(
+      { error: getErrorMessage(error, "Failed to fetch vault batch") },
+      { status: 500 },
+    );
+  }
+}

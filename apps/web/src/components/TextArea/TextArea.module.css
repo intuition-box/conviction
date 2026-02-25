@@ -1,0 +1,22 @@
+.textarea {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--input-border);
+  padding: var(--space-3-5) var(--space-4);
+  font-size: var(--font-size-base);
+  min-height: 140px;
+  resize: vertical;
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--input-border-focus);
+  box-shadow: var(--focus-ring-shadow);
+}
+
+.textarea::placeholder {
+  color: var(--input-placeholder);
+}

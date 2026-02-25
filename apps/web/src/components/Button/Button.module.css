@@ -1,0 +1,110 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast), box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-surface), 0 0 0 4px var(--color-accent);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Sizes ──────────────────────────────────────────────────────────────── */
+
+.sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.md {
+  padding: 0.55rem 1.2rem;
+  font-size: var(--font-size-small);
+}
+
+/* ── Variants ───────────────────────────────────────────────────────────── */
+
+.primary {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border-color: var(--button-primary-bg);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--button-primary-bg-hover);
+  border-color: var(--button-primary-bg-hover);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.outline {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.outline:hover:not(:disabled) {
+  background: var(--bg-surface);
+  border-color: var(--border-hover);
+}
+
+.danger {
+  background: var(--color-red-500);
+  color: #fff;
+  border-color: var(--color-red-500);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--color-red-600, #dc2626);
+  border-color: var(--color-red-600, #dc2626);
+}
+
+/* ── Modifiers ─────────────────────────────────────────────────────────── */
+
+.fullWidth {
+  width: 100%;
+  display: block;
+}

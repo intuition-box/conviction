@@ -1,0 +1,15 @@
+packages:
+  - apps/*
+  - packages/*
+
+ignoredBuiltDependencies:
+  - bufferutil
+  - keccak
+  - protobufjs
+  - sharp
+  - unrs-resolver
+  - utf-8-validate
+
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma

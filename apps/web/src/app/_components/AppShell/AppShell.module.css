@@ -1,0 +1,95 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   APP SHELL — Fixed sidebar + content offset
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar: fixed, full height ─────────────────────────────────────── */
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 240px;
+  height: 100vh;
+  z-index: 60;
+  overflow-y: auto;
+  background: var(--bg-page);
+  transition: width 200ms ease;
+}
+
+.sidebarCollapsed {
+  width: 64px;
+}
+
+/* ── Content: offset by sidebar width ────────────────────────────────── */
+
+.content {
+  margin-left: 240px;
+  min-height: 100vh;
+  background: var(--bg-page);
+  transition: margin-left 200ms ease;
+}
+
+.contentCollapsed {
+  margin-left: 64px;
+}
+
+/* ── Main column: topbar (sticky) + page content ─────────────────────── */
+
+.mainColumn {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+  transition: opacity 200ms ease;
+}
+
+.topbarHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.main {
+  flex: 1;
+  padding: var(--space-6) var(--space-8);
+  max-width: 100%;
+}
+
+.bottomNav {
+  display: none;
+}
+
+/* ── Homepage: page scrolls naturally ────────────────────────────────── */
+
+.contentHome .mainColumn {
+  overflow-y: visible;
+  height: auto;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+
+  .content,
+  .contentCollapsed {
+    margin-left: 0;
+  }
+
+  .bottomNav {
+    display: block;
+  }
+
+  .main {
+    padding: var(--space-4);
+    padding-bottom: calc(var(--space-4) + 64px);
+  }
+}

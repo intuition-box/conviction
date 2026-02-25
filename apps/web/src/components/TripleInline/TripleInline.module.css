@@ -1,0 +1,54 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   TRIPLE INLINE — shared 3-column atom row (used everywhere)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.tripleRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+/* AtomChip — individually framed atoms */
+.tripleValue {
+  min-width: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--text-primary);
+  line-height: var(--line-height-normal);
+  padding: var(--space-1-5) var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+
+  /* Single-line truncation — custom tooltip shows full text on hover */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  cursor: default;
+  position: relative;
+}
+
+/* Instant custom tooltip on hover — no browser delay */
+.tripleValue:hover::after {
+  content: attr(data-full);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
+  z-index: 10;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-zinc-900);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-tiny);
+  color: var(--text-primary);
+  white-space: normal;
+  word-break: break-word;
+  max-width: 240px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Only show tooltip when text is actually truncated (has data-full) */
+.tripleValue:not([data-full]):hover::after {
+  display: none;
+}

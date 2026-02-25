@@ -1,0 +1,130 @@
+/* ── Page wrapper (positions inspector overlay) ──────────────────────── */
+
+.pageWrapper {
+  position: relative;
+}
+
+/* ── Page layout ──────────────────────────────────────────────────────── */
+
+.page {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-6);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: var(--space-4) 0;
+}
+
+/* ── Inspector overlay (sits on top of sidebar) ──────────────────────── */
+
+.inspectorOverlay {
+  position: fixed;
+  top: var(--topbar-height, 56px);
+  right: 0;
+  width: 420px;
+  height: calc(100vh - var(--topbar-height, 56px));
+  z-index: 10;
+}
+
+/* ── Feed column ─────────────────────────────────────────────────────── */
+
+.feedColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* ── Feed list ───────────────────────────────────────────────────────── */
+
+.feedList {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Empty ────────────────────────────────────────────────────────────── */
+
+.empty {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+}
+
+/* ── Inline Composer (below feed thread) ─────────────────────────────── */
+
+.inlineComposer {
+  padding: var(--space-3) var(--space-4);
+  padding-left: 52px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ── Stance picker (appears after clicking Reply) ────────────────────── */
+
+.stancePicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  padding-left: 52px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.stancePickerLabel {
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stanceBtn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.stanceBtnSupports {
+  color: var(--stance-supports-text);
+  border-color: var(--stance-supports-accent);
+}
+
+.stanceBtnSupports:hover {
+  background: color-mix(in srgb, var(--stance-supports-accent) 15%, transparent);
+}
+
+.stanceBtnRefutes {
+  color: var(--stance-refutes-text);
+  border-color: var(--stance-refutes-accent);
+}
+
+.stanceBtnRefutes:hover {
+  background: color-mix(in srgb, var(--stance-refutes-accent) 15%, transparent);
+}
+
+.stanceBtnCancel {
+  margin-left: auto;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-small);
+  line-height: 1;
+}
+
+.stanceBtnCancel:hover {
+  color: var(--text-primary);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .page {
+    grid-template-columns: 1fr;
+    padding: var(--space-2) 0;
+  }
+}

@@ -1,0 +1,124 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// User represents a Debate Market identity
+/// 1 address = 1 user (simplified from multi-wallet approach)
+model User {
+  id             String       @id @default(uuid())
+  createdAt      DateTime     @default(now())
+  address        String       @unique
+  avatar         String?
+  displayName    String?
+  energyBalance  Int          @default(1000)
+  isWeb2User     Boolean      @default(false)
+  lastActiveAt   DateTime     @default(now())
+  onboardingStep Int          @default(0)
+  posts          Post[]
+  submissions    Submission[]
+
+  @@index([address])
+}
+
+/// Theme represents a debate topic
+/// Slug is the primary key for clean URLs
+model Theme {
+  slug        String       @id
+  description String?
+  name        String
+  posts       Post[]
+  submissions Submission[]
+}
+
+/// Post represents user-generated debate content
+/// Posts store ONLY the user's text + navigation structure
+/// Associated triples are canonical on Intuition (via PostTripleLink)
+model Post {
+  id                  String           @id @default(uuid())
+  body                String
+  createdAt           DateTime         @default(now())
+  publishedAt         DateTime?
+  parentPostId        String?
+  themeSlug           String
+  userId              String
+  parent              Post?            @relation("Replies", fields: [parentPostId], references: [id])
+  replies             Post[]           @relation("Replies")
+  theme               Theme            @relation(fields: [themeSlug], references: [slug])
+  user                User             @relation(fields: [userId], references: [id])
+  stance              Stance?
+  originSubmissionId  String?
+  tripleLinks         PostTripleLink[]
+  publishedSubmission Submission?      @relation("PublishedSubmission")
+  childSubmissions    Submission[]     @relation("ParentSubmission")
+  originSubmission    Submission?      @relation("OriginSubmission", fields: [originSubmissionId], references: [id])
+
+  @@index([themeSlug, createdAt])
+  @@index([userId, createdAt])
+  @@index([parentPostId])
+  @@index([originSubmissionId])
+}
+
+/// PostTripleLink connects Posts to published Intuition triples
+/// A post has exactly 1 MAIN triple and N SUPPORTING triples
+/// Role is explicit (not based on order)
+model PostTripleLink {
+  id        String          @id @default(uuid())
+  postId    String
+  createdAt DateTime        @default(now())
+  termId    String
+  role      PostTripleRole
+  post      Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, termId])
+  @@index([termId])
+  @@index([postId, createdAt])
+  @@index([postId, role])
+}
+
+/// Submission represents a contribution in progress
+/// Tracks draft → extraction → publish workflow
+model Submission {
+  id                    String           @id @default(uuid())
+  userId                String
+  inputText             String
+  status                SubmissionStatus @default(DRAFT)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  publishedPostId       String?          @unique
+  parentPostId          String?
+  stance                Stance?
+  themeSlug             String
+  publishIdempotencyKey String?          // Lock key to prevent concurrent publish attempts
+  publishedPost         Post?            @relation("PublishedSubmission", fields: [publishedPostId], references: [id], onDelete: SetNull)
+  parentPost            Post?            @relation("ParentSubmission", fields: [parentPostId], references: [id], onDelete: SetNull)
+  theme                 Theme            @relation(fields: [themeSlug], references: [slug])
+  user                  User             @relation(fields: [userId], references: [id])
+  originPosts           Post[]           @relation("OriginSubmission")
+
+  @@index([userId, status])
+  @@index([status])
+}
+
+enum SubmissionStatus {
+  DRAFT
+  EXTRACTING
+  READY_TO_PUBLISH
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+enum PostTripleRole {
+  MAIN
+  SUPPORTING
+}
+
+enum Stance {
+  SUPPORTS
+  REFUTES
+}

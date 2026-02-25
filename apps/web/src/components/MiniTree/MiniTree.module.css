@@ -1,0 +1,213 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   MINI TREE — Schematic visualization
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.miniTree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  position: relative;
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TREE ROWS
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.nodeWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TREE NODES — Square, geometric
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.treeNode {
+  border-radius: var(--radius-sm);
+  border: 2px solid;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.treeNode:hover {
+  opacity: 0.85;
+}
+
+.treeNode:focus {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+
+/* ─── Ancestor nodes ─────────────────────────────────────────────────────── */
+
+.ancestorNode {
+  width: 40px;
+  height: 24px;
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+}
+
+.ancestorNode:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+
+/* ─── Focus node (accent blue) ───────────────────────────────────────────── */
+
+.focusNode {
+  width: 70px;
+  height: 36px;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.focusNode:hover {
+  opacity: 0.8;
+}
+
+
+/* ─── Child nodes (stance-colored) ───────────────────────────────────────── */
+
+.childNode {
+  width: 40px;
+  height: 24px;
+}
+
+.childSUPPORTS {
+  background: var(--stance-supports-bg);
+  border-color: var(--stance-supports-accent);
+}
+
+.childSUPPORTS:hover {
+  background: var(--stance-supports-accent);
+  border-color: var(--stance-supports-accent);
+}
+
+.childREFUTES {
+  background: var(--stance-refutes-bg);
+  border-color: var(--stance-refutes-accent);
+}
+
+.childREFUTES:hover {
+  background: var(--stance-refutes-accent);
+  border-color: var(--stance-refutes-accent);
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   CONNECTORS — Gray lines (not black)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.connectorDown {
+  width: 1px;
+  height: var(--space-1);
+  background: var(--border-default);
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TOOLTIP
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  min-width: 200px;
+  max-width: 320px;
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  pointer-events: none;
+  animation: tooltipFadeIn var(--transition-fast);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 4px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--bg-surface);
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.05));
+}
+
+.tooltipLabel {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.tooltipBody {
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .miniTree {
+    padding: var(--space-2);
+  }
+
+  .ancestorNode,
+  .childNode {
+    width: 32px;
+    height: 20px;
+  }
+
+  .focusNode {
+    width: 56px;
+    height: 30px;
+  }
+
+  .tooltip {
+    max-width: 240px;
+  }
+}

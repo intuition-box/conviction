@@ -1,0 +1,109 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   TRIPLE TOOLTIP
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.wrapper {
+  position: relative;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 300px;
+  max-width: 420px;
+  padding: var(--space-3);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  pointer-events: none;
+  text-transform: none;
+  animation: fadeIn var(--transition-fast);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--bg-inset);
+}
+
+/* On-chain cue — top right of tooltip */
+.onchainCue {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.onchainCue::before {
+  content: "\25C6";
+  font-size: 0.4375rem;
+  color: var(--accent-blue);
+}
+
+.loading,
+.error {
+  margin: 0;
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.error {
+  color: #FB7185;
+}
+
+/* ── Triple data — uses shared TripleInline component ──────────────── */
+
+.tripleData {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tripleData + .tripleData {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-default);
+}
+
+.tripleIndex {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-1);
+}

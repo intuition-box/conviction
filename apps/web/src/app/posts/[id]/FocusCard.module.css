@@ -1,0 +1,110 @@
+/* ── Focus card — centered thesis ─────────────────────────────────────── */
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  box-shadow: inset 0 2px 0 0 var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-8);
+  text-align: center;
+  position: relative;
+}
+
+.body {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Stats row — compact 3 centered items */
+.statsRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.statItem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 0 var(--space-3);
+}
+
+.statItem:not(:last-child) {
+  border-right: 1px solid var(--border-subtle);
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.statLabel {
+  font-size: var(--font-size-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.protocolBadge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: padding var(--transition-fast), color var(--transition-fast);
+}
+
+.protocolBadge::before {
+  content: "\25C6";
+  font-size: 0.5625rem;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.protocolBadge:hover {
+  padding: 0 var(--space-1-5);
+  color: var(--color-accent);
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .body {
+    font-size: 1.25rem;
+  }
+
+  .statItem {
+    padding: 0 var(--space-2);
+  }
+}

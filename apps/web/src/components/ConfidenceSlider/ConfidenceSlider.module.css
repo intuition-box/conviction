@@ -1,0 +1,263 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   CONFIDENCE SLIDER
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── Live feedback row ─────────────────────────────────────────────────── */
+
+.feedback {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 20px;
+}
+
+.feedbackBack {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.feedbackBack:hover {
+  color: var(--text-primary);
+}
+
+.feedbackDirection {
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: color var(--transition-fast);
+}
+
+.feedbackAmount {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Direction-aware colors */
+.wrapper[data-direction="support"] .feedbackDirection { color: var(--stance-supports-text); }
+.wrapper[data-direction="oppose"] .feedbackDirection  { color: var(--stance-refutes-text); }
+.wrapper[data-direction="neutral"] .feedbackDirection { color: var(--text-muted); }
+
+.feedbackNeutral {
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Slider row ────────────────────────────────────────────────────────── */
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+}
+
+.sliderLabel {
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.sliderLabelSupport { color: var(--stance-supports-text); }
+.sliderLabelOppose  { color: var(--stance-refutes-text); }
+
+/* ── Opposite side warning ─────────────────────────────────────────────── */
+
+.oppositeWarning {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--stance-refutes-text);
+  text-align: center;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+}
+
+/* ── Range input ───────────────────────────────────────────────────────── */
+
+.slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 20px;
+}
+
+/* Track — WebKit */
+.slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--stance-supports-text),
+    var(--border-default) 50%,
+    var(--stance-refutes-text)
+  );
+}
+
+/* Track — Firefox */
+.slider::-moz-range-track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: linear-gradient(
+    to right,
+    var(--stance-supports-text),
+    var(--border-default) 50%,
+    var(--stance-refutes-text)
+  );
+}
+
+/* Thumb — WebKit */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 2px solid var(--border-default);
+  margin-top: -7px; /* center on 6px track */
+  transition: box-shadow var(--transition-fast);
+}
+
+/* Thumb — Firefox */
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 2px solid var(--border-default);
+  transition: box-shadow var(--transition-fast);
+}
+
+/* Thumb glow per direction */
+.wrapper[data-direction="support"] .slider::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3);
+}
+.wrapper[data-direction="support"] .slider::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.3);
+}
+
+.wrapper[data-direction="oppose"] .slider::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.3);
+}
+.wrapper[data-direction="oppose"] .slider::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.3);
+}
+
+/* Focus ring */
+.slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+.slider:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* ── Tick marks ────────────────────────────────────────────────────────── */
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px; /* align with thumb center */
+}
+
+.tick {
+  width: 1px;
+  height: 6px;
+  background: var(--border-default);
+  flex-shrink: 0;
+}
+
+.tickZero {
+  width: 2px;
+  height: 10px;
+  background: var(--text-muted);
+}
+
+/* ── User badge ───────────────────────────────────────────────────────── */
+
+.userBadge {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  padding: 2px var(--space-1-5);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+}
+
+.userBadge[data-side="support"] { color: var(--stance-supports-text); }
+.userBadge[data-side="oppose"]  { color: var(--stance-refutes-text); }
+
+.userDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.userBadge[data-side="support"] .userDot { background: var(--stance-supports-text); }
+.userBadge[data-side="oppose"] .userDot  { background: var(--stance-refutes-text); }
+
+/* ── CTA color overrides ───────────────────────────────────────────────── */
+
+.ctaSupport {
+  --button-primary-bg: var(--stance-supports-accent);
+  --button-primary-bg-hover: var(--stance-supports-text);
+  --button-primary-text: #fff;
+}
+
+.ctaOppose {
+  --button-primary-bg: var(--stance-refutes-accent);
+  --button-primary-bg-hover: var(--stance-refutes-text);
+  --button-primary-text: #fff;
+}
+
+/* ── Mobile ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -9px;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}

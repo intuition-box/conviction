@@ -1,0 +1,247 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   TRIPLE INSPECTOR
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+/* ── Section ────────────────────────────────────────────────────────────── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.count {
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* ── On-chain cue (header badge) ──────────────────────────────────────── */
+
+.onchainCue {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.onchainCue::before {
+  content: "\25C6";
+  font-size: 0.5rem;
+  color: var(--accent-blue);
+}
+
+/* ── Linked triples tabs ────────────────────────────────────────────────── */
+
+.linkedList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.linkedItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2-5) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.linkedItem:hover {
+  background: var(--bg-surface);
+}
+
+.linkedItemActive {
+  border-color: var(--accent-blue);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.linkedHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.linkedDefault {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.linkedBody {
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+  line-height: var(--line-height-normal);
+}
+
+/* ── Triple display wrapper ───────────────────────────────────────────── */
+
+.tripleDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ── Metrics grid — ProtoMetricCard pattern ────────────────────────────── */
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.metricLabel {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.metricValue {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+
+/* ── Feedback messages ──────────────────────────────────────────────────── */
+
+.hint {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+}
+
+.success {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: #2DD4BF;
+  font-weight: 500;
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: #FB7185;
+  font-weight: 500;
+}
+
+/* ── Loading / error states ─────────────────────────────────────────────── */
+
+.loadingState,
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.loadingState p,
+.errorState p {
+  margin: 0;
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+}
+
+/* ── Related posts ──────────────────────────────────────────────────────── */
+
+.postsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.postCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.postCard:hover {
+  background: var(--bg-surface);
+  border-color: var(--color-zinc-600);
+}
+
+.postHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.postDate {
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+}
+
+.postBody {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--text-primary);
+  line-height: var(--line-height-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -1,0 +1,38 @@
+/* ── MiniTree toggle ──────────────────────────────────────────────────── */
+
+.toggle {
+  display: flex;
+  justify-content: center;
+}
+
+.toggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--font-size-tiny);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.toggleBtn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-hover);
+}
+
+.wrapper {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.wrapperOpen {
+  max-height: 300px;
+  opacity: 1;
+}

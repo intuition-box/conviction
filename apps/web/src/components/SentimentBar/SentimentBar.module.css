@@ -1,0 +1,151 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   SENTIMENT BAR
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── Bar ──────────────────────────────────────────────────────────────── */
+
+.bar {
+  display: flex;
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.barSupport {
+  background: var(--stance-supports-text);
+  transition: width 0.3s ease;
+}
+
+.barOppose {
+  background: var(--stance-refutes-text);
+  transition: width 0.3s ease;
+}
+
+.barEmpty {
+  width: 100%;
+  background: var(--border-default);
+}
+
+/* ── Percentage labels ────────────────────────────────────────────────── */
+
+.pctRow {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pctSupport { color: var(--stance-supports-text); }
+.pctOppose  { color: var(--stance-refutes-text); }
+
+.emptyLabel {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Detail row (per-side breakdown) ──────────────────────────────────── */
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-tiny);
+}
+
+.detailSupport { color: var(--stance-supports-text); opacity: 0.75; }
+.detailOppose  { color: var(--stance-refutes-text); opacity: 0.75; }
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.participants {
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+}
+
+/* ── User badge ───────────────────────────────────────────────────────── */
+
+.userBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  padding: 2px var(--space-1-5);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+}
+
+.userBadge[data-side="support"] { color: var(--stance-supports-text); }
+.userBadge[data-side="oppose"]  { color: var(--stance-refutes-text); }
+
+.userDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.userBadge[data-side="support"] .userDot { background: var(--stance-supports-text); }
+.userBadge[data-side="oppose"] .userDot  { background: var(--stance-refutes-text); }
+
+/* ── Vote CTA ─────────────────────────────────────────────────────────── */
+
+.voteBtn {
+  border: none;
+  background: none;
+  font-family: var(--font-display);
+  font-size: var(--font-size-tiny);
+  font-weight: 600;
+  color: var(--accent-blue);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.voteBtn:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+/* ── Loading skeleton ─────────────────────────────────────────────────── */
+
+.skeleton {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--border-default);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonRow {
+  height: 14px;
+  width: 40%;
+  border-radius: var(--radius-sm);
+  background: var(--border-default);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}

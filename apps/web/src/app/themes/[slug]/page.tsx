@@ -1,0 +1,52 @@
+import { notFound } from "next/navigation";
+
+import { prisma } from "@/server/db/prisma";
+
+import { ThemePageClient } from "./ThemePageClient";
+
+type ThemePageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default async function ThemePage({ params }: ThemePageProps) {
+  const { slug } = await params;
+
+  const theme = await prisma.theme.findUnique({
+    where: { slug },
+  });
+
+  if (!theme) {
+    notFound();
+  }
+
+  const rootPosts = await prisma.post.findMany({
+    where: {
+      themeSlug: theme.slug,
+      parentPostId: null, // Root posts only
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      replies: { select: { id: true } }, // Count replies
+      tripleLinks: {
+        where: { role: "MAIN" },
+        orderBy: { createdAt: "asc" },
+        select: { termId: true },
+      },
+    },
+  });
+
+  const rootSummaries = rootPosts.map((post) => ({
+    id: post.id,
+    body: post.body,
+    createdAt: post.createdAt.toISOString(),
+    replyCount: post.replies.length,
+    mainTripleTermIds: post.tripleLinks.map(l => l.termId),
+  }));
+
+  return (
+    <ThemePageClient
+      theme={{ slug: theme.slug, name: theme.name }}
+      rootPosts={rootSummaries}
+    />
+  );
+}

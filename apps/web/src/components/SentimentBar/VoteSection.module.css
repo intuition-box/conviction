@@ -1,0 +1,11 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   VOTE SECTION — SentimentBar ↔ ConfidenceSlider toggle
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+

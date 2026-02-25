@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: debate_market_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: debate_market
+    ports:
+      - "5432:5432"
+    volumes:
+      - debate_market_pg:/var/lib/postgresql/data
+
+volumes:
+  debate_market_pg:
