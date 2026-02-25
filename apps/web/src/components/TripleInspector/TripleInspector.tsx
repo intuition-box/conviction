@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-import { ConnectedConfidenceSlider } from "@/components/ConfidenceSlider/ConnectedConfidenceSlider";
+import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { RoleBadge } from "@/components/RoleBadge/RoleBadge";
 import { TripleInline } from "@/components/TripleInline/TripleInline";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
@@ -195,10 +195,11 @@ export function TripleInspector({ triples, defaultTripleTermId }: TripleInspecto
           {/* Signal */}
           <section className={styles.section}>
             <h3 className={styles.sectionTitle}>Signal</h3>
-            <ConnectedConfidenceSlider
+            <ConnectedThumbVote
               key={activeId}
               tripleTermId={activeId!}
               counterTermId={active.counterTermId ?? null}
+              size="md"
             />
           </section>
 

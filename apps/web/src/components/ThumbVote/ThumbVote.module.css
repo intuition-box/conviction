@@ -1,0 +1,79 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   THUMB VOTE
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ── Size variants ───────────────────────────────────────────────────── */
+
+.sm .btn { font-size: var(--font-size-tiny); padding: 2px var(--space-1-5); gap: 4px; }
+.md .btn { font-size: var(--font-size-sm);   padding: var(--space-1) var(--space-2); gap: 6px; }
+
+/* ── Button base ─────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  line-height: 1;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Active states ───────────────────────────────────────────────────── */
+
+.activeSupport {
+  color: var(--stance-supports-text);
+  background: rgba(45, 212, 191, 0.1);
+}
+
+.activeSupport:hover:not(:disabled) {
+  background: rgba(45, 212, 191, 0.15);
+  color: var(--stance-supports-text);
+}
+
+.activeOppose {
+  color: var(--stance-refutes-text);
+  background: rgba(251, 113, 133, 0.1);
+}
+
+.activeOppose:hover:not(:disabled) {
+  background: rgba(251, 113, 133, 0.15);
+  color: var(--stance-refutes-text);
+}
+
+/* ── Count label ─────────────────────────────────────────────────────── */
+
+.count {
+  letter-spacing: 0.02em;
+}
+
+/* ── Loading spinner ─────────────────────────────────────────────────── */
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

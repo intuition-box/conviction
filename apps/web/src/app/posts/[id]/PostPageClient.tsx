@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Composer } from "@/app/_components/Composer/Composer";
 import { Sheet } from "@/app/_components/Sheet/Sheet";
 import { RightPanel } from "@/app/_components/RightPanel/RightPanel";
 import { useIsMobile } from "@/app/_components/RightPanel/useIsMobile";
 import { VoteSection } from "@/components/SentimentBar/VoteSection";
+import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 import { TripleInspector } from "@/components/TripleInspector/TripleInspector";
 import { useExtractionFlow } from "@/features/post/ExtractionWorkspace/hooks/useExtractionFlow";
@@ -60,6 +61,11 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTriples, setInspectorTriples] = useState(post.tripleLinks);
   const [treeOpen, setTreeOpen] = useState(false);
+  const [voteRefreshKey, setVoteRefreshKey] = useState(0);
+
+  const handleVoteSuccess = useCallback(() => {
+    setVoteRefreshKey((k) => k + 1);
+  }, []);
 
   const handlePublishSuccess = (postId: string) => {
     setDialogOpen(false);
@@ -69,7 +75,7 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
 
   const parentMainTripleTermId = post.tripleLinks.find(t => t.role === "MAIN")?.termId ?? null;
 
-  // Batch fetch sentiment data for reply SentimentRings
+  // Batch fetch sentiment data for reply sentiment indicators
   const replyTripleIds = useMemo(() =>
     replies.flatMap(r => r.mainTripleTermIds?.[0] ? [r.mainTripleTermIds[0]] : []),
     [replies],
@@ -138,13 +144,13 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
           <FocusCard
             post={post}
             themeName={theme.name}
-            totalReplies={replies.length}
-            supportCount={supportReplies.length}
-            refuteCount={refuteReplies.length}
             onOpenInspector={handleOpenInspector}
+            thumbSlot={parentMainTripleTermId ? (
+              <ConnectedThumbVote tripleTermId={parentMainTripleTermId} size="md" onVoteSuccess={handleVoteSuccess} />
+            ) : undefined}
           >
             {parentMainTripleTermId && (
-              <VoteSection tripleTermId={parentMainTripleTermId} />
+              <VoteSection tripleTermId={parentMainTripleTermId} refreshKey={voteRefreshKey} />
             )}
           </FocusCard>
 

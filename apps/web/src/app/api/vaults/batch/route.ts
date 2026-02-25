@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Hex } from "viem";
-import { readVaultPair, getCounterVaultId, fetchBatchParticipantCounts } from "@/server/intuition/vaults";
+import { readVaultPair, getCounterVaultId, fetchBatchParticipantCounts, fetchBatchUserDirections } from "@/server/intuition/vaults";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
 const MAX_BATCH = 50;
 const HEX_TRIPLE = /^0x[0-9a-fA-F]{64}$/;
+const HEX_ADDR = /^0x[0-9a-fA-F]{40}$/i;
 
-type VaultEntry = { forAssets: string; againstAssets: string; forCount: number; againstCount: number };
+type VaultEntry = {
+  forAssets: string;
+  againstAssets: string;
+  forCount: number;
+  againstCount: number;
+  userDirection?: "support" | "oppose" | null;
+};
 
 const ZERO_ENTRY: VaultEntry = { forAssets: "0", againstAssets: "0", forCount: 0, againstCount: 0 };
 
@@ -17,13 +24,14 @@ const ZERO_ENTRY: VaultEntry = { forAssets: "0", againstAssets: "0", forCount: 0
  * Reads both linear (curveId=1) and progressive (curveId=2) curves.
  * Person counts are deduplicated across curves via GraphQL distinct_on.
  *
- * Body: { tripleIds: string[] }   — max 50
- * Response: { [tripleId]: { forAssets: string, againstAssets: string, forCount: number, againstCount: number } }
+ * Body: { tripleIds: string[], address?: string }   — max 50
+ * Response: { [tripleId]: { forAssets, againstAssets, forCount, againstCount, userDirection? } }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const tripleIds: unknown = body?.tripleIds;
+    const rawAddress: unknown = body?.address;
 
     if (!Array.isArray(tripleIds) || tripleIds.length === 0) {
       return NextResponse.json({ error: "tripleIds must be a non-empty array" }, { status: 400 });
@@ -41,25 +49,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({});
     }
 
+    // Validate optional address
+    const userAddress = typeof rawAddress === "string" && HEX_ADDR.test(rawAddress) ? rawAddress : null;
+
     // Pre-compute counter vault IDs
     const counterIds = validIds.map((id) => getCounterVaultId(id as Hex));
 
-    // ── On-chain: read 4 vaults per triple (FOR/AGAINST × linear/progressive) ──
-    const vaultResults = await Promise.allSettled(
-      validIds.map(async (tripleId, i) => {
-        const pair = await readVaultPair(tripleId as Hex, counterIds[i]);
-        return {
-          tripleId,
-          forAssets: pair.for.totalAssets.toString(),
-          againstAssets: pair.against.totalAssets.toString(),
-          forCountFallback: pair.for.positionCountFallback,
-          againstCountFallback: pair.against.positionCountFallback,
-        };
-      }),
-    );
-
-    // ── GraphQL: deduplicated person counts (cross-curve unique wallets) ──
-    const gqlCounts = await fetchBatchParticipantCounts(validIds, counterIds);
+    // ── Run all fetches in parallel ──
+    const [vaultResults, gqlCounts, userDirections] = await Promise.all([
+      // On-chain: read 4 vaults per triple (FOR/AGAINST × linear/progressive)
+      Promise.allSettled(
+        validIds.map(async (tripleId, i) => {
+          const pair = await readVaultPair(tripleId as Hex, counterIds[i]);
+          return {
+            tripleId,
+            forAssets: pair.for.totalAssets.toString(),
+            againstAssets: pair.against.totalAssets.toString(),
+            forCountFallback: pair.for.positionCountFallback,
+            againstCountFallback: pair.against.positionCountFallback,
+          };
+        }),
+      ),
+      // GraphQL: deduplicated person counts (cross-curve unique wallets)
+      fetchBatchParticipantCounts(validIds, counterIds),
+      // GraphQL: user directions (only if address provided)
+      userAddress ? fetchBatchUserDirections(validIds, counterIds, userAddress) : null,
+    ]);
 
     // ── Assemble response ──
     const data: Record<string, VaultEntry> = {};
@@ -75,6 +90,7 @@ export async function POST(request: NextRequest) {
           againstAssets,
           forCount: counts?.forCount ?? forCountFallback,
           againstCount: counts?.againstCount ?? againstCountFallback,
+          userDirection: userDirections?.[tripleId] ?? null,
         };
       } else {
         data[validIds[i]] = ZERO_ENTRY;

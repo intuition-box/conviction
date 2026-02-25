@@ -115,6 +115,66 @@ export async function fetchParticipantCounts(
   }
 }
 
+/** Batch user directions via GraphQL — one query for all triples */
+export async function fetchBatchUserDirections(
+  tripleIds: string[],
+  counterIds: string[],
+  userAddress: string,
+): Promise<Record<string, "support" | "oppose"> | null> {
+  try {
+    ensureIntuitionGraphql();
+
+    const allTermIds = [...tripleIds, ...counterIds];
+    const accountIds = [...new Set([userAddress, userAddress.toLowerCase()])];
+
+    const query = `
+      query GetBatchUserDirections($accountIds: [String!]!, $termIds: [String!]!) {
+        userPositions: positions(
+          where: { account_id: { _in: $accountIds }, vault: { term_id: { _in: $termIds } }, shares: { _gt: "0" } }
+        ) { shares vault { term_id } }
+      }
+    `;
+
+    const response = await fetch(intuitionGraphqlUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { accountIds, termIds: allTermIds } }),
+    });
+
+    if (!response.ok) throw new Error(`GraphQL HTTP ${response.status}`);
+
+    const data = await response.json();
+    if (data.errors) throw new Error("GraphQL returned errors");
+    if (!data.data) throw new Error("GraphQL returned no data");
+
+    // Build lookup: vault term_id → set of tripleIds it belongs to
+    const tripleIdSet = new Set(tripleIds);
+    const counterIdSet = new Set(counterIds);
+    // Map counterIds back to their original tripleIds
+    const counterToTriple: Record<string, string> = {};
+    for (let i = 0; i < tripleIds.length; i++) {
+      counterToTriple[counterIds[i]] = tripleIds[i];
+    }
+
+    const result: Record<string, "support" | "oppose"> = {};
+    for (const pos of data.data.userPositions ?? []) {
+      const termId = pos.vault?.term_id;
+      if (!termId) continue;
+
+      if (tripleIdSet.has(termId)) {
+        result[termId] = "support";
+      } else if (counterIdSet.has(termId)) {
+        const origTripleId = counterToTriple[termId];
+        if (origTripleId) result[origTripleId] = "oppose";
+      }
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 /** Deduplicated participant counts via GraphQL (batch) */
 export async function fetchBatchParticipantCounts(
   tripleIds: string[],

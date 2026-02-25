@@ -12,49 +12,13 @@
 
 .body {
   margin: 0;
+  padding: var(--space-4) 0;
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
   line-height: var(--line-height-relaxed);
-}
-
-/* Stats row — compact 3 centered items */
-.statsRow {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0;
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.statItem {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
-  padding: 0 var(--space-3);
-}
-
-.statItem:not(:last-child) {
-  border-right: 1px solid var(--border-subtle);
-}
-
-.statValue {
-  font-family: var(--font-display);
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.statLabel {
-  font-size: var(--font-size-tiny);
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .protocolBadge {
@@ -102,9 +66,5 @@
 
   .body {
     font-size: 1.25rem;
-  }
-
-  .statItem {
-    padding: 0 var(--space-2);
   }
 }

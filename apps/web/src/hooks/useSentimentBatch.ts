@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAccount } from "wagmi";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
 
 /* ── Shared types (import from here everywhere) ─────────────────────── */
@@ -11,6 +12,7 @@ export type SentimentData = {
   forCount: number;
   againstCount: number;
   convictionPct: number;    // forAssets / total assets * 100 (secondary info)
+  userDirection: "support" | "oppose" | null;
 };
 
 export type SentimentMap = Record<string, SentimentData>;
@@ -19,7 +21,13 @@ export type SentimentMap = Record<string, SentimentData>;
 
 type BatchVaultResponse = Record<
   string,
-  { forAssets: string; againstAssets: string; forCount: number; againstCount: number }
+  {
+    forAssets: string;
+    againstAssets: string;
+    forCount: number;
+    againstCount: number;
+    userDirection?: "support" | "oppose" | null;
+  }
 >;
 
 /* ── Constants ───────────────────────────────────────────────────────── */
@@ -34,17 +42,28 @@ const CHUNK_SIZE = 50;
  *
  * - Deduplicates IDs
  * - Chunks in batches of 50
- * - Only re-fetches when the set of IDs changes
+ * - Only re-fetches when the set of IDs changes or wallet address changes
  * - Incrementally merges new IDs (doesn't discard old data)
  */
 export function useSentimentBatch(tripleIds: string[]): {
   data: SentimentMap;
   loading: boolean;
 } {
+  const { address } = useAccount();
   const [data, setData] = useState<SentimentMap>({});
   const [loading, setLoading] = useState(false);
   const fetchedRef = useRef<Set<string>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
+  const prevAddressRef = useRef<string | undefined>(address);
+
+  // Reset cache when wallet address changes — clear data immediately
+  useEffect(() => {
+    if (prevAddressRef.current !== address) {
+      prevAddressRef.current = address;
+      fetchedRef.current = new Set();
+      setData({});
+    }
+  }, [address]);
 
   useEffect(() => {
     // Find IDs we haven't fetched yet
@@ -82,7 +101,7 @@ export function useSentimentBatch(tripleIds: string[]): {
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ tripleIds: chunk }),
+                  body: JSON.stringify({ tripleIds: chunk, address: address ?? undefined }),
                   signal: controller.signal,
                 },
               );
@@ -109,6 +128,7 @@ export function useSentimentBatch(tripleIds: string[]): {
             forCount: vault.forCount,
             againstCount: vault.againstCount,
             convictionPct: totalAssets > 0n ? Number((forAssets * 100n) / totalAssets) : 50,
+            userDirection: vault.userDirection ?? null,
           };
         }
 
@@ -130,7 +150,7 @@ export function useSentimentBatch(tripleIds: string[]): {
       cancelled = true;
       controller.abort();
     };
-  }, [[...tripleIds].sort().join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [[...tripleIds].sort().join(","), address]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { data, loading };
 }
