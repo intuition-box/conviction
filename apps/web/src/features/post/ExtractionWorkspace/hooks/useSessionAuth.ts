@@ -87,7 +87,10 @@ export function useSessionAuth({ setMessage }: UseSessionAuthParams) {
 
     // Check if a server session cookie already exists
     try {
-      const checkRes = await fetch("/api/auth/session");
+      const checkRes = await fetch("/api/auth/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
       if (checkRes.ok) {
         const checkData = await checkRes.json();
         if (
