@@ -31,6 +31,7 @@ model Theme {
   slug        String       @id
   description String?
   name        String
+  atomTermId  String?      @unique // Intuition atom term ID (on-chain)
   posts       Post[]
   submissions Submission[]
 }

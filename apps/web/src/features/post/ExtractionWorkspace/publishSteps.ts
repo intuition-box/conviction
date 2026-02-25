@@ -13,7 +13,7 @@ import {
   eventParseTripleCreated,
 } from "@0xintuition/protocol";
 
-import { getStanceAtomId } from "@/lib/intuition/stanceAtoms";
+import { getStanceAtomId, HAS_TAG_ATOM_ID } from "@/lib/intuition/protocolAtoms";
 import { depositToTripleMin } from "@/lib/intuition/intuitionDeposit";
 import { normalizeLabelForChain } from "@/lib/format/normalizeLabel";
 import { labels } from "@/lib/vocabulary";
@@ -700,4 +700,92 @@ function resolveNestedRef(
     return atomMap.get(normalizeText(ref.label));
   }
   return resolvedTripleMap.get(ref.tripleKey);
+}
+
+// ─── Step 6: resolveTagTriples ──────────────────────────────────────────
+//
+// Creates "has tag" triples for root posts: [main_triple | HAS_TAG | theme_atom]
+// Pattern mirrors resolveStanceTriples — batch find + create, returns txHash.
+
+export type TagEntry = {
+  mainTripleTermId: string;
+  mainProposalId: string;
+  themeAtomTermId: string;
+};
+
+export async function resolveTagTriples(params: {
+  entries: TagEntry[];
+  ctx: StepContext;
+}): Promise<{ tagTxHash: string | null }> {
+  const { entries, ctx } = params;
+
+  if (entries.length === 0) return { tagTxHash: null };
+
+  // Deduplicate by (mainTriple + themeAtom) key
+  const seen = new Set<string>();
+  const uniqueEntries: TagEntry[] = [];
+  for (const entry of entries) {
+    const key = `${entry.mainTripleTermId}-${entry.themeAtomTermId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueEntries.push(entry);
+  }
+
+  const queries = uniqueEntries.map((e) => ({
+    entry: e,
+    s: e.mainTripleTermId,
+    p: HAS_TAG_ATOM_ID,
+    o: e.themeAtomTermId,
+  }));
+
+  let tagTxHash: string | null = null;
+
+  try {
+    const existingResults = await findTripleIds(
+      ctx.accountAddress,
+      queries.map((q) => [q.s, q.p, q.o] as [string, string, string]),
+    );
+
+    const existingMap = new Map<string, string>();
+    for (const result of existingResults) {
+      if (result.term_id) {
+        existingMap.set(`${result.subject_id}-${result.predicate_id}-${result.object_id}`, result.term_id);
+      }
+    }
+
+    const toCreate: typeof queries = [];
+    for (const q of queries) {
+      const key = `${q.s}-${q.p}-${q.o}`;
+      if (!existingMap.has(key)) {
+        toCreate.push(q);
+      }
+    }
+
+    if (toCreate.length > 0) {
+      const subjects = toCreate.map((q) => asHexId(q.s)!);
+      const predicates = toCreate.map((q) => asHexId(q.p)!);
+      const objects = toCreate.map((q) => asHexId(q.o)!);
+
+      if (subjects.some((s) => !s) || predicates.some((p) => !p) || objects.some((o) => !o)) {
+        throw new PublishStepError("triple_creation_failed", labels.errorTagCreation);
+      }
+
+      const mvConfig = await multiVaultMultiCallIntuitionConfigs(sdkReadConfig(ctx.writeConfig));
+      const costPerTriple = BigInt(mvConfig.triple_cost) + BigInt(mvConfig.min_deposit);
+      const deposits = Array(toCreate.length).fill(costPerTriple) as bigint[];
+      const totalValue = costPerTriple * BigInt(toCreate.length);
+
+      tagTxHash = await multiVaultCreateTriples(sdkWriteConfig(ctx.writeConfig), {
+        args: [subjects as Hex[], predicates as Hex[], objects as Hex[], deposits],
+        value: totalValue,
+      });
+
+      // We don't need to parse events here — tag triples aren't persisted to PostTripleLink
+    }
+  } catch (error) {
+    if (error instanceof PublishStepError) throw error;
+    throw new PublishStepError("triple_creation_failed", labels.errorTagCreation);
+  }
+
+  return { tagTxHash };
 }

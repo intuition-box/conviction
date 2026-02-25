@@ -45,7 +45,7 @@ export default async function ThemePage({ params }: ThemePageProps) {
 
   return (
     <ThemePageClient
-      theme={{ slug: theme.slug, name: theme.name }}
+      theme={{ slug: theme.slug, name: theme.name, atomTermId: theme.atomTermId ?? null }}
       rootPosts={rootSummaries}
     />
   );

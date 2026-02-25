@@ -81,6 +81,7 @@ export const labels = {
   errorAtomCreation: "Failed to create terms.",
   errorTripleCreation: "Failed to create claims.",
   errorStanceCreation: "Unable to link your reply.",
+  errorTagCreation: "Failed to tag claim with theme.",
   errorResolution: "Unable to verify claims.",
   errorDepositFailed: "Support failed.",
   preflightNoApproved: "Add at least one claim before publishing.",

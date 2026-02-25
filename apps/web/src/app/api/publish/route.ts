@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       tripleTxHash,
       nestedTxHash,
       stanceTxHash,
+      tagTxHash: _tagTxHash,
     } = body as {
       submissionId?: string;
       idempotencyKey?: string;
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
       tripleTxHash?: string | null;
       nestedTxHash?: string | null;
       stanceTxHash?: string | null;
+      tagTxHash?: string | null;
     };
 
     if (!submissionId || typeof submissionId !== "string") {

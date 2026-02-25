@@ -16,6 +16,7 @@ type ThemePageClientProps = {
   theme: {
     slug: string;
     name: string;
+    atomTermId: string | null;
   };
   rootPosts: {
     id: string;
@@ -42,6 +43,7 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
   const flow = useExtractionFlow({
     themeSlug: theme.slug,
     parentPostId: null,
+    themeAtomTermId: theme.atomTermId,
     onPublishSuccess: handlePublishSuccess,
   });
 

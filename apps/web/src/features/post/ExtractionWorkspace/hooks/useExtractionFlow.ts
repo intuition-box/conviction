@@ -37,7 +37,7 @@ import { useTripleResolution } from "./useTripleResolution";
 // Chain normalization: use normalizeLabelForChain from @/lib/normalizeLabel
 const normalizeText = normalizeLabelForChain;
 
-export function useExtractionFlow({ themeSlug, parentPostId, parentMainTripleTermId, onPublishSuccess }: UseExtractionFlowParams) {
+export function useExtractionFlow({ themeSlug, parentPostId, parentMainTripleTermId, themeAtomTermId, onPublishSuccess }: UseExtractionFlowParams) {
   const router = useRouter();
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
@@ -309,6 +309,7 @@ export function useExtractionFlow({ themeSlug, parentPostId, parentMainTripleTer
     onPublishSuccess,
     visibleNestedProposals,
     proposals,
+    themeAtomTermId: themeAtomTermId ?? null,
   });
 
   const busy = isExtracting || publish.isPublishing;

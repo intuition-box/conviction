@@ -224,6 +224,7 @@ export type UseExtractionFlowParams = {
   themeSlug: string;
   parentPostId: string | null;
   parentMainTripleTermId?: string | null;
+  themeAtomTermId?: string | null;
   onPublishSuccess?: (postId: string) => void;
 };
 

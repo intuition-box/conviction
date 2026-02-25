@@ -31,9 +31,11 @@ import {
   resolveTriples,
   resolveNestedTriples,
   resolveStanceTriples,
+  resolveTagTriples,
   depositOnExistingTriples,
   PublishStepError,
   type StanceEntry,
+  type TagEntry,
   type StepContext,
 } from "../publishSteps";
 
@@ -65,6 +67,7 @@ type UseOnchainPublishParams = {
   onPublishSuccess?: (postId: string) => void;
   visibleNestedProposals: NestedProposalDraft[];
   proposals: ProposalDraft[];
+  themeAtomTermId: string | null;
 };
 
 type UseOnchainPublishReturn = {
@@ -98,6 +101,7 @@ export function useOnchainPublish({
   onPublishSuccess,
   visibleNestedProposals,
   proposals,
+  themeAtomTermId,
 }: UseOnchainPublishParams): UseOnchainPublishReturn {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -312,7 +316,32 @@ export function useOnchainPublish({
         }
       }
 
-      // [3d] Final validation
+      // [3d] Tag triples (root posts in themes with on-chain atoms)
+      let tagTxHash: string | null = null;
+      if (!extractionJob.parentPostId && themeAtomTermId) {
+        const seen = new Set<string>();
+        const tagEntries: TagEntry[] = [];
+        for (const draft of draftPosts) {
+          const mainResolved = resolvedByIndex.find(
+            (t) => t?.proposalId === draft.mainProposalId && t?.role === "MAIN",
+          );
+          if (!mainResolved) continue;
+          const dedupeKey = `${mainResolved.tripleTermId}-${themeAtomTermId}`;
+          if (seen.has(dedupeKey)) continue;
+          seen.add(dedupeKey);
+          tagEntries.push({
+            mainTripleTermId: mainResolved.tripleTermId,
+            mainProposalId: mainResolved.proposalId,
+            themeAtomTermId,
+          });
+        }
+        if (tagEntries.length > 0) {
+          const tagResult = await resolveTagTriples({ entries: tagEntries, ctx });
+          tagTxHash = tagResult.tagTxHash;
+        }
+      }
+
+      // [3e] Final validation
       const orderedTriples = resolvedByIndex.filter(
         (t): t is ResolvedTriple => Boolean(t),
       );
@@ -370,6 +399,7 @@ export function useOnchainPublish({
         tripleTxHash,
         nestedTxHash,
         stanceTxHash,
+        tagTxHash,
       };
       try {
         localStorage.setItem(

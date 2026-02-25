@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { prisma } from "@/server/db/prisma";
 
+import { ThemesPageClient } from "./ThemesPageClient";
+
 import styles from "./page.module.css";
 
 export default async function ThemesIndexPage() {
@@ -20,8 +22,13 @@ export default async function ThemesIndexPage() {
   return (
     <div className={styles.page}>
       <section className={styles.header}>
-        <h1 className={styles.title}>Themes</h1>
-        <p className={styles.subtitle}>Browse all debate themes</p>
+        <div className={styles.headerTop}>
+          <div>
+            <h1 className={styles.title}>Themes</h1>
+            <p className={styles.subtitle}>Browse all debate themes</p>
+          </div>
+          <ThemesPageClient />
+        </div>
       </section>
 
       {themes.length === 0 ? (
