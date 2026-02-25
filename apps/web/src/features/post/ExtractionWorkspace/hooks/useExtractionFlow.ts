@@ -408,3 +408,5 @@ export function useExtractionFlow({ themeSlug, parentPostId, parentMainTripleTer
     publishOnchain: publish.publishOnchain,
   };
 }
+
+export type UseExtractionFlowResult = ReturnType<typeof useExtractionFlow>;

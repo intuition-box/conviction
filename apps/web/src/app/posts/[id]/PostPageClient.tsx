@@ -1,11 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useConnect } from "wagmi";
-import { injected } from "wagmi/connectors";
-
 import { Composer } from "@/app/_components/Composer/Composer";
-import { FlowDialog } from "@/app/_components/FlowDialog/FlowDialog";
 import { Sheet } from "@/app/_components/Sheet/Sheet";
 import { RightPanel } from "@/app/_components/RightPanel/RightPanel";
 import { useIsMobile } from "@/app/_components/RightPanel/useIsMobile";
@@ -13,13 +9,9 @@ import { VoteSection } from "@/components/SentimentBar/VoteSection";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 import { TripleInspector } from "@/components/TripleInspector/TripleInspector";
 import { useExtractionFlow } from "@/features/post/ExtractionWorkspace/hooks/useExtractionFlow";
+import { ExtractionFlowDialog, type DialogStep } from "@/features/post/ExtractionWorkspace/ExtractionFlowDialog";
 import type { Stance } from "@/features/post/ExtractionWorkspace/extractionTypes";
 import { useToast } from "@/components/Toast/ToastContext";
-import { StepSplitDecision } from "@/features/post/ExtractionWorkspace/steps/StepSplitDecision";
-import { StepReview } from "@/features/post/ExtractionWorkspace/steps/StepReview";
-import { StepContext } from "@/features/post/ExtractionWorkspace/steps/StepContext";
-import { StepSubmit } from "@/features/post/ExtractionWorkspace/steps/StepSubmit";
-import { labels } from "@/lib/vocabulary";
 
 import { AncestorBreadcrumbs } from "./AncestorBreadcrumbs";
 import { FocusCard } from "./FocusCard";
@@ -61,11 +53,10 @@ type PostPageClientProps = {
 
 export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageClientProps) {
   const { addToast } = useToast();
-  const { connect } = useConnect();
   const isMobile = useIsMobile();
   const [composerOpen, setComposerOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogStep, setDialogStep] = useState<"split" | "claims" | "context" | "publish">("claims");
+  const [dialogStep, setDialogStep] = useState<DialogStep>("claims");
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTriples, setInspectorTriples] = useState(post.tripleLinks);
   const [treeOpen, setTreeOpen] = useState(false);
@@ -194,109 +185,13 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
       </div>
 
       {/* Extraction flow dialog */}
-      <FlowDialog
+      <ExtractionFlowDialog
+        flow={flow}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        title={
-          dialogStep === "split" ? labels.dialogSplitDecision
-          : dialogStep === "claims" ? labels.dialogStepClaimsReview
-          : dialogStep === "context" ? labels.dialogStepContext
-          : labels.dialogStepPreview
-        }
-        totalSteps={3}
-        activeStep={
-          dialogStep === "split" ? null
-          : dialogStep === "claims" ? 1
-          : dialogStep === "context" ? 2
-          : 3
-        }
-        helpText={
-          dialogStep === "claims" ? labels.reviewIntroBody
-          : dialogStep === "context" ? labels.contextIntroBody
-          : dialogStep === "publish" ? labels.previewIntroBody
-          : null
-        }
-      >
-        {dialogStep === "split" && (
-          <StepSplitDecision
-            proposalCount={flow.proposalItems.length}
-            onSplit={() => {
-              flow.draftActions.onSplit();
-              setDialogStep("claims");
-            }}
-            onKeepAsOne={() => setDialogStep("claims")}
-          />
-        )}
-        {dialogStep === "claims" && (
-          <StepReview
-            extractionJob={flow.extractionJob}
-            proposalItems={flow.proposalItems}
-            nestedProposals={flow.visibleNestedProposals}
-            nestedRefLabels={flow.nestedRefLabels}
-            approvedProposals={flow.approvedProposals}
-            tripleSuggestionsByProposal={flow.tripleSuggestionsByProposal}
-            walletConnected={flow.walletConnected}
-            busy={flow.busy}
-            canAdvance={flow.canAdvanceToSubmit}
-            actions={flow.proposalActions}
-            onNext={() => setDialogStep("context")}
-            onBack={() => setDialogOpen(false)}
-            draftPosts={flow.draftPosts}
-            isSplit={flow.isSplit}
-            draftActions={flow.draftActions}
-            extractedInputText={flow.extractedInputText}
-            stanceRequired={flow.stanceRequired}
-          />
-        )}
-        {dialogStep === "context" && (
-          <StepContext
-            draftPosts={flow.draftPosts}
-            proposalItems={flow.proposalItems}
-            displayNestedProposals={flow.displayNestedProposals}
-            nestedRefLabels={flow.nestedRefLabels}
-            nestedActions={flow.nestedActions}
-            proposalActions={flow.proposalActions}
-            draftActions={flow.draftActions}
-            tripleSuggestionsByProposal={flow.tripleSuggestionsByProposal}
-            isSplit={flow.isSplit}
-            busy={flow.busy}
-            walletConnected={flow.walletConnected}
-            onNext={() => setDialogStep("publish")}
-            onBack={() => setDialogStep("claims")}
-          />
-        )}
-        {dialogStep === "publish" && (
-          <StepSubmit
-            approvedProposals={flow.approvedProposals}
-            approvedTripleStatuses={flow.approvedTripleStatuses}
-            approvedTripleStatus={flow.approvedTripleStatus}
-            approvedTripleStatusError={flow.approvedTripleStatusError}
-            minDeposit={flow.minDeposit}
-            atomCost={flow.atomCost}
-            tripleCost={flow.tripleCost}
-            existingTripleId={flow.existingTripleId}
-            existingTripleStatus={flow.existingTripleStatus}
-            existingTripleError={flow.existingTripleError}
-            existingTripleMetrics={flow.existingTripleMetrics}
-            depositState={flow.depositState}
-            txPlan={flow.txPlan}
-            publishedPosts={flow.publishedPosts}
-            isPublishing={flow.isPublishing}
-            publishError={flow.publishError}
-            contextDirty={flow.contextDirty}
-            walletConnected={flow.walletConnected}
-            correctChain={flow.correctChain}
-            onPublish={flow.publishOnchain}
-            onConnect={() => connect({ connector: injected() })}
-            onSwitchChain={flow.switchToCorrectChain}
-            onBack={() => setDialogStep("context")}
-            draftPosts={flow.draftPosts}
-            stanceRequired={flow.stanceRequired}
-            visibleNestedProposals={flow.visibleNestedProposals}
-            nestedRefLabels={flow.nestedRefLabels}
-          />
-        )}
-      </FlowDialog>
+        step={dialogStep}
+        onStepChange={setDialogStep}
+      />
 
       {/* Right panel (desktop) — Inspector only */}
       {!isMobile && (
