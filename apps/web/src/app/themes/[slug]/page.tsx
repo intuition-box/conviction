@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/server/db/prisma";
 
+export const dynamic = "force-dynamic";
+
 import { ThemePageClient } from "./ThemePageClient";
 
 type ThemePageProps = {

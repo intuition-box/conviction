@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { prisma } from "@/server/db/prisma";
 
+export const dynamic = "force-dynamic";
+
 import { ThemesPageClient } from "./ThemesPageClient";
 
 import styles from "./page.module.css";
