@@ -2,6 +2,8 @@ import { prisma } from "@/server/db/prisma";
 import type { FeedReplyPreview } from "./HomePageClient";
 import { HomePageClient } from "./HomePageClient";
 
+export const dynamic = "force-dynamic";
+
 /** Shared select shape for reply previews (reused in feed query + server action) */
 const REPLY_SELECT = {
   id: true,
