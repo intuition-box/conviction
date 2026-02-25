@@ -51,6 +51,10 @@ CORE TRIPLE:
 - Object = direct complement only. No trailing "by X", "for X", "in X", etc.
   Adverbs that are part of the verbal phrase stay in the object:
   "drives capital offshore" => object "capital offshore".
+- When a preposition is essential to the verb's meaning (hide X about Y, spread lies about Y,
+  invest in Y, rely on Y, profit from Y, spy on Y, worry about Y), fold "verb + [noun] + prep"
+  into the predicate so the object is a reusable atom. Only split into a modifier when the prep
+  phrase is truly optional context (time, place, quantity).
 - Do NOT output a bare preposition as predicate (for/in/of/to/by/with).
 
 ATOM REUSABILITY:
@@ -81,7 +85,7 @@ PRONOUN RESOLUTION:
 
 MODIFIERS:
 - Each modifier = { "prep": "<preposition>", "value": "<complement>" }
-- Common preps: by, for, in, of, since, within, to, from, at, as, with
+- Common preps: about, by, for, in, of, since, within, to, from, at, as, with, on, through, over, against
 - Only extract modifiers EXPLICIT in the claim. Do not invent.
 - If no modifiers, output empty array.
 
@@ -169,6 +173,14 @@ Claim: "The adoption of renewable energy will reduce emissions."
 
 Claim: "The growth of e-commerce has hurt small businesses."
 => { "core": { "subject": "E-commerce", "predicate": "has hurt", "object": "small businesses" },
+     "modifiers": [] }
+
+Claim: "Public trust depends on transparency in scientific research."
+=> { "core": { "subject": "Public trust", "predicate": "depends on", "object": "transparency" },
+     "modifiers": [{ "prep": "in", "value": "scientific research" }] }
+
+Claim: "Governments hide information about the true shape of the Earth."
+=> { "core": { "subject": "Governments", "predicate": "hide information about", "object": "the shape of the Earth" },
      "modifiers": [] }
 `,
 });
