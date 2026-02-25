@@ -1,0 +1,105 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   SENTIMENT CIRCLE — reusable bicolor vote indicator
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+
+.circle {
+  position: relative;
+  border-radius: 50%;
+  background: linear-gradient(
+    to right,
+    var(--stance-supports-text) 50%,
+    var(--stance-refutes-text) 50%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.circle::before {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: var(--bg-surface);
+}
+
+/* ── Empty state: neutral border ─────────────────────────────────────────── */
+
+.empty {
+  background: var(--border-default);
+}
+
+/* ── Mode: full (52px — detail page / SentimentBar) ──────────────────────── */
+
+.full {
+  width: 52px;
+  height: 52px;
+}
+
+.full::before {
+  inset: 3px;
+}
+
+/* ── Mode: compact (32px — feed cards) ───────────────────────────────────── */
+
+.compact {
+  width: 26px;
+  height: 26px;
+}
+
+.compact::before {
+  inset: 2px;
+}
+
+/* ── Text: full mode ─────────────────────────────────────────────────────── */
+
+.number {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.label {
+  position: relative;
+  z-index: 1;
+  font-size: 0.5625rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* ── Text: compact hover percentage ──────────────────────────────────────── */
+
+.hoverPct {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.compact:hover .hoverPct {
+  opacity: 1;
+}
+
+/* Mobile: show % statically (no hover available) */
+@media (hover: none) {
+  .compact .hoverPct {
+    opacity: 1;
+  }
+}

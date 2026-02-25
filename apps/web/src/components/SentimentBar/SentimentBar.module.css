@@ -8,39 +8,78 @@
   gap: var(--space-3);
 }
 
-/* ── Bar ──────────────────────────────────────────────────────────────── */
+/* ── Bar zone (segments + circle) ────────────────────────────────────── */
 
-.bar {
+.barZone {
+  position: relative;
   display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 52px;
+}
+
+/* Segment wrapper: bar only in flow, label positioned above */
+.barSegmentLeft,
+.barSegmentRight {
+  flex: 1;
+  position: relative;
+}
+
+.barSegmentLeft .pctSupport,
+.barSegmentRight .pctOppose {
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+}
+
+.barSegmentLeft .pctSupport { right: 0; }
+.barSegmentRight .pctOppose { left: 0; }
+
+/* Bar tracks inside segments */
+.barTrackLeft {
+  width: 100%;
   height: 8px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full) 0 0 var(--radius-full);
   overflow: hidden;
+  display: flex;
+  justify-content: flex-end;
+  background: var(--bg-muted);
+}
+
+.barTrackRight {
+  width: 100%;
+  height: 8px;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  overflow: hidden;
+  background: var(--bg-muted);
 }
 
 .barSupport {
+  height: 100%;
   background: var(--stance-supports-text);
   transition: width 0.3s ease;
 }
 
 .barOppose {
+  height: 100%;
   background: var(--stance-refutes-text);
   transition: width 0.3s ease;
 }
 
 .barEmpty {
   width: 100%;
+  height: 100%;
   background: var(--border-default);
 }
 
-/* ── Percentage labels ────────────────────────────────────────────────── */
+/* ── Percentage labels (inline, next to circle) ──────────────────────── */
 
-.pctRow {
-  display: flex;
-  justify-content: space-between;
+.pctSupport,
+.pctOppose {
   font-family: var(--font-mono);
   font-size: var(--font-size-tiny);
   font-weight: 600;
   letter-spacing: 0.02em;
+  z-index: 1;
 }
 
 .pctSupport { color: var(--stance-supports-text); }
@@ -59,74 +98,11 @@
   display: flex;
   justify-content: space-between;
   font-size: var(--font-size-tiny);
+  margin-top: calc(-1 * var(--space-2));
 }
 
 .detailSupport { color: var(--stance-supports-text); opacity: 0.75; }
 .detailOppose  { color: var(--stance-refutes-text); opacity: 0.75; }
-
-/* ── Footer ───────────────────────────────────────────────────────────── */
-
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.footerLeft {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.participants {
-  font-size: var(--font-size-tiny);
-  color: var(--text-muted);
-}
-
-/* ── User badge ───────────────────────────────────────────────────────── */
-
-.userBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-size-tiny);
-  font-weight: 600;
-  padding: 2px var(--space-1-5);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-default);
-}
-
-.userBadge[data-side="support"] { color: var(--stance-supports-text); }
-.userBadge[data-side="oppose"]  { color: var(--stance-refutes-text); }
-
-.userDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.userBadge[data-side="support"] .userDot { background: var(--stance-supports-text); }
-.userBadge[data-side="oppose"] .userDot  { background: var(--stance-refutes-text); }
-
-/* ── Vote CTA ─────────────────────────────────────────────────────────── */
-
-.voteBtn {
-  border: none;
-  background: none;
-  font-family: var(--font-display);
-  font-size: var(--font-size-tiny);
-  font-weight: 600;
-  color: var(--accent-blue);
-  cursor: pointer;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
-}
-
-.voteBtn:hover {
-  background: rgba(96, 165, 250, 0.08);
-}
 
 /* ── Loading skeleton ─────────────────────────────────────────────────── */
 

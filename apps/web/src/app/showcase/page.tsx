@@ -15,7 +15,8 @@ import { TextArea } from "@/components/TextArea/TextArea";
 import { ToastItem, type Toast } from "@/components/Toast/Toast";
 import { MiniTree } from "@/components/MiniTree/MiniTree";
 import { SentimentBar } from "@/components/SentimentBar/SentimentBar";
-import { SentimentRing } from "@/components/SentimentBar/SentimentRing";
+import { SentimentCircle } from "@/components/SentimentBar/SentimentCircle";
+import { ThumbVote } from "@/components/ThumbVote/ThumbVote";
 
 import styles from "./showcase.module.css";
 
@@ -156,25 +157,39 @@ export default function ShowcasePage() {
         </div>
       </Section>
 
-      {/* ── SentimentBar ────────────────────────────────────── */}
-      <Section title="SentimentBar">
-        <div className={styles.stack}>
-          <SentimentBar supportPct={62} totalParticipants={19} userDirection="support" onVoteClick={() => {}} />
-          <SentimentBar supportPct={75} totalParticipants={3} userDirection={null} onVoteClick={() => {}} />
-          <SentimentBar supportPct={50} totalParticipants={0} userDirection={null} onVoteClick={() => {}} />
+      {/* ── ThumbVote ─────────────────────────────────────── */}
+      <Section title="ThumbVote">
+        <div className={styles.row}>
+          <ThumbVote forCount={12} againstCount={5} userDirection={null} onVote={() => {}} busy={false} size="sm" />
+          <ThumbVote forCount={8} againstCount={3} userDirection="support" onVote={() => {}} busy={false} size="sm" />
+          <ThumbVote forCount={4} againstCount={9} userDirection="oppose" onVote={() => {}} busy={false} size="sm" />
+          <ThumbVote forCount={0} againstCount={0} userDirection={null} onVote={() => {}} busy={true} busyDirection="support" size="sm" />
+        </div>
+        <div className={styles.row}>
+          <ThumbVote forCount={42} againstCount={18} userDirection={null} onVote={() => {}} busy={false} size="md" />
+          <ThumbVote forCount={42} againstCount={18} userDirection="support" onVote={() => {}} busy={false} size="md" />
         </div>
       </Section>
 
-      {/* ── SentimentRing ───────────────────────────────────── */}
-      <Section title="SentimentRing">
+      {/* ── SentimentBar ────────────────────────────────────── */}
+      <Section title="SentimentBar">
+        <div className={styles.stack}>
+          <SentimentBar supportPct={62} totalParticipants={19} forCount={12} againstCount={7} />
+          <SentimentBar supportPct={75} totalParticipants={3} />
+          <SentimentBar supportPct={50} totalParticipants={0} />
+        </div>
+      </Section>
+
+      {/* ── SentimentCircle ────────────────────────────────── */}
+      <Section title="SentimentCircle">
         <div className={styles.row}>
-          <SentimentRing supportPct={62} />
-          <SentimentRing supportPct={85} />
-          <SentimentRing supportPct={30} />
-          <SentimentRing supportPct={50} />
-          <SentimentRing supportPct={50} empty />
-          <SentimentRing supportPct={62} size={32} strokeWidth={4} />
-          <SentimentRing supportPct={75} size={40} strokeWidth={5} />
+          <SentimentCircle supportPct={62} totalParticipants={19} mode="full" />
+          <SentimentCircle supportPct={85} totalParticipants={3} mode="full" />
+          <SentimentCircle supportPct={50} totalParticipants={0} mode="full" />
+          <SentimentCircle supportPct={62} totalParticipants={19} mode="compact" />
+          <SentimentCircle supportPct={85} totalParticipants={3} mode="compact" />
+          <SentimentCircle supportPct={30} totalParticipants={8} mode="compact" />
+          <SentimentCircle supportPct={50} totalParticipants={0} mode="compact" />
         </div>
       </Section>
 

@@ -129,38 +129,7 @@
   color: var(--text-muted);
 }
 
-/* ── Quick vote button (hover-reveal) ────────────────────────────────── */
-
-.voteBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px var(--space-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-}
-
-.post:hover .voteBtn,
-.replyPreview:hover .voteBtn {
-  opacity: 1;
-}
-
-.voteBtn:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-/* ── Reply button (hover-reveal, same style as vote) ─────────────────── */
+/* ── Reply button (hover-reveal) ──────────────────────────────────────── */
 
 .replyBtn {
   display: inline-flex;

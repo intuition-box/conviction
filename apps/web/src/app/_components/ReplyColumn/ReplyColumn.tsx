@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TripleTooltip } from "@/components/TripleTooltip/TripleTooltip";
-import { SentimentRing } from "@/components/SentimentBar/SentimentRing";
+import { SentimentCircle } from "@/components/SentimentBar/SentimentCircle";
+import { ConnectedThumbVote } from "@/components/ThumbVote";
 import type { SentimentMap } from "@/hooks/useSentimentBatch";
 
 import styles from "./ReplyColumn.module.css";
@@ -61,11 +62,17 @@ export function ReplyColumn({ stance, title, replies, onAdd, onBadgeClick, senti
                   {reply.replyCount} {reply.replyCount === 1 ? "reply" : "replies"}
                 </span>
                 {reply.mainTripleTermIds?.[0] && sentimentMap?.[reply.mainTripleTermIds[0]] && (
-                  <SentimentRing
+                  <SentimentCircle
                     supportPct={sentimentMap[reply.mainTripleTermIds[0]].supportPct}
-                    size={14}
-                    strokeWidth={2}
-                    empty={sentimentMap[reply.mainTripleTermIds[0]].totalParticipants === 0}
+                    totalParticipants={sentimentMap[reply.mainTripleTermIds[0]].totalParticipants}
+                    mode="compact"
+                  />
+                )}
+                {reply.mainTripleTermIds?.[0] && (
+                  <ConnectedThumbVote
+                    tripleTermId={reply.mainTripleTermIds[0]}
+                    sentimentData={sentimentMap?.[reply.mainTripleTermIds[0]] ?? null}
+                    size="sm"
                   />
                 )}
                 {reply.mainTripleTermIds && reply.mainTripleTermIds.length > 0 && (

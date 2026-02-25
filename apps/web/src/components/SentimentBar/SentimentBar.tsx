@@ -1,10 +1,9 @@
+import { SentimentCircle } from "./SentimentCircle";
 import styles from "./SentimentBar.module.css";
 
 type SentimentBarProps = {
   supportPct: number;
   totalParticipants: number;
-  userDirection?: "support" | "oppose" | null;
-  onVoteClick?: () => void;
   loading?: boolean;
   forCount?: number;
   againstCount?: number;
@@ -13,8 +12,6 @@ type SentimentBarProps = {
 export function SentimentBar({
   supportPct,
   totalParticipants,
-  userDirection = null,
-  onVoteClick,
   loading = false,
   forCount,
   againstCount,
@@ -34,32 +31,42 @@ export function SentimentBar({
 
   return (
     <div className={styles.wrapper}>
-      {/* Percentage labels — above bar */}
-      {empty ? (
-        <p className={styles.emptyLabel}>No votes yet</p>
-      ) : (
-        <div className={styles.pctRow}>
-          <span className={styles.pctSupport}>{Math.round(clamped)}% support</span>
-          <span className={styles.pctOppose}>{Math.round(opposePct)}% oppose</span>
-        </div>
-      )}
+      {empty && <p className={styles.emptyLabel}>No votes yet</p>}
 
-      {/* Bar */}
-      <div className={styles.bar}>
-        {empty ? (
-          <div className={styles.barEmpty} />
-        ) : (
-          <>
-            <div
-              className={styles.barSupport}
-              style={{ width: `${clamped}%` }}
-            />
-            <div
-              className={styles.barOppose}
-              style={{ width: `${opposePct}%` }}
-            />
-          </>
-        )}
+      {/* Bar zone: two segments + percentages + center circle */}
+      <div className={styles.barZone}>
+        <div className={styles.barSegmentLeft}>
+          {!empty && (
+            <>
+              <span className={styles.pctSupport}>{Math.round(clamped)}%</span>
+              <div className={styles.barTrackLeft}>
+                <div
+                  className={styles.barSupport}
+                  style={{ width: `${clamped}%` }}
+                />
+              </div>
+            </>
+          )}
+          {empty && <div className={styles.barTrackLeft}><div className={styles.barEmpty} /></div>}
+        </div>
+
+        {/* Circle — always centered */}
+        <SentimentCircle supportPct={clamped} totalParticipants={totalParticipants} mode="full" />
+
+        <div className={styles.barSegmentRight}>
+          {!empty && (
+            <>
+              <span className={styles.pctOppose}>{Math.round(opposePct)}%</span>
+              <div className={styles.barTrackRight}>
+                <div
+                  className={styles.barOppose}
+                  style={{ width: `${opposePct}%` }}
+                />
+              </div>
+            </>
+          )}
+          {empty && <div className={styles.barTrackRight}><div className={styles.barEmpty} /></div>}
+        </div>
       </div>
 
       {/* Detail row — below bar */}
@@ -73,23 +80,6 @@ export function SentimentBar({
           </span>
         </div>
       )}
-
-      {/* Footer */}
-      <div className={styles.footer}>
-        <div className={styles.footerLeft}>
-          {userDirection && (
-            <span className={styles.userBadge} data-side={userDirection}>
-              <span className={styles.userDot} />
-              You: {userDirection === "support" ? "Support" : "Oppose"}
-            </span>
-          )}
-        </div>
-        {onVoteClick && (
-          <button type="button" className={styles.voteBtn} onClick={onVoteClick}>
-            {userDirection ? "Update position" : "Cast your vote"} &rarr;
-          </button>
-        )}
-      </div>
     </div>
   );
 }

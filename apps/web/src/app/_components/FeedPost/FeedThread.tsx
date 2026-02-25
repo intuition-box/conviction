@@ -82,6 +82,7 @@ export function FeedThread({ post, onBadgeClick, onReply, composerSlot, loadMore
                         themeSlug={post.theme.slug}
                         onBadgeClick={onBadgeClick}
                         onReply={onReply}
+                        sentimentMap={sentimentMap}
                       />
                       {composerSlot?.(sub.id)}
                     </div>
