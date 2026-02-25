@@ -36,6 +36,12 @@ Input JSON:
 Output EXACTLY:
 { "core": { "subject":"...", "predicate":"...", "object":"..." }, "modifiers": [...] }
 
+RULE PRIORITY (when rules conflict):
+1. Faithfulness — preserve the original meaning, tense, modality, and negation exactly.
+2. Reusability — prefer short, reusable atoms (subject/object).
+3. Fluency — natural English phrasing in the predicate.
+Never sacrifice meaning for shorter atoms.
+
 CORE TRIPLE:
 - Keep subject/predicate/object MINIMAL. Strip prepositional phrases into modifiers.
 - Subject = grammatical subject (may include more than a word like "Carbon emissions").
@@ -46,6 +52,22 @@ CORE TRIPLE:
   Adverbs that are part of the verbal phrase stay in the object:
   "drives capital offshore" => object "capital offshore".
 - Do NOT output a bare preposition as predicate (for/in/of/to/by/with).
+
+ATOM REUSABILITY:
+- Target 1-4 words for subject and object. Longer is acceptable for proper nouns,
+  fixed terms, or compound concepts (e.g. "Ultra-processed foods", "Carbon emissions from aviation").
+- Prefer common nouns/noun phrases that others would independently use as atoms.
+- If subject or object exceeds 4 words AND can be restructured without losing meaning, do so.
+
+DENOMINALIZATION:
+- If the subject is a nominalization (The impact/effect/influence/role/growth/decline/
+  failure/adoption/increase/lack/rise/cost of X), extract X as subject and fold the
+  nominalization into an active predicate.
+- Preserve tense/modality/negation from the original: "will be positive" → "will positively impact"
+  (keep "will"), "has not reduced" → keep "has not".
+- Avoid copula + vague adjective (is/will be + positive/negative/important/significant)
+  ONLY when the sentence is a nominalization. Keep copula when it is structurally
+  informative: comparatives (is safer than), classification (is a type of), identity (is the capital of).
 
 COMPARATIVES (than / as...as):
 - "X is ADJ-er than Y" → predicate includes "is ADJ-er than", object is Y.
@@ -132,6 +154,22 @@ Claim: "Nuclear energy is safer than coal."
 Claim: "Public transport is more efficient than driving for daily commutes."
 => { "core": { "subject": "Public transport", "predicate": "is more efficient than", "object": "driving" },
      "modifiers": [{ "prep": "for", "value": "daily commutes" }] }
+
+Claim: "The impact of AI in the creative sector will be positive."
+=> { "core": { "subject": "AI", "predicate": "will positively impact", "object": "the creative sector" },
+     "modifiers": [] }
+
+Claim: "The influence of social media on teenagers is harmful."
+=> { "core": { "subject": "Social media", "predicate": "harms", "object": "teenagers" },
+     "modifiers": [] }
+
+Claim: "The adoption of renewable energy will reduce emissions."
+=> { "core": { "subject": "Renewable energy", "predicate": "will reduces", "object": "emissions" },
+     "modifiers": [] }
+
+Claim: "The growth of e-commerce has hurt small businesses."
+=> { "core": { "subject": "E-commerce", "predicate": "has hurt", "object": "small businesses" },
+     "modifiers": [] }
 `,
 });
 
