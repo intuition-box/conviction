@@ -53,6 +53,7 @@ type LinkedTriple = {
 type TripleInspectorProps = {
   triples: LinkedTriple[];
   defaultTripleTermId?: string | null;
+  currentPostId?: string | null;
 };
 
 function fmt(value?: number | null) {
@@ -69,7 +70,7 @@ function fmtId(id: string) {
   return `${id.slice(0, 6)}\u2026${id.slice(-4)}`;
 }
 
-export function TripleInspector({ triples, defaultTripleTermId }: TripleInspectorProps) {
+export function TripleInspector({ triples, defaultTripleTermId, currentPostId }: TripleInspectorProps) {
   const initial = triples.find((t) => t.termId === defaultTripleTermId)?.termId ?? triples[0]?.termId ?? null;
   const [activeId, setActiveId] = useState<string | null>(initial);
   const [tripleMap, setTripleMap] = useState<Record<string, TripleData>>({});
@@ -125,13 +126,14 @@ export function TripleInspector({ triples, defaultTripleTermId }: TripleInspecto
       if (!activeId) { setRelatedPosts([]); return; }
       setRelatedLoading(true);
       try {
-        const data = await fetchJsonWithTimeout<{ posts: RelatedPost[] }>(`/api/triples/${activeId}/posts`);
+        const qs = currentPostId ? `?exclude=${currentPostId}` : "";
+        const data = await fetchJsonWithTimeout<{ posts: RelatedPost[] }>(`/api/triples/${activeId}/posts${qs}`);
         if (ok) setRelatedPosts(data.posts || []);
       } catch { if (ok) setRelatedPosts([]); }
       finally { if (ok) setRelatedLoading(false); }
     })();
     return () => { ok = false; };
-  }, [activeId]);
+  }, [activeId, currentPostId]);
 
   if (isLoading) return <div className={styles.loadingState}><p>Loading triple data...</p></div>;
   if (error) return <div className={styles.errorState}><p>{error}</p></div>;

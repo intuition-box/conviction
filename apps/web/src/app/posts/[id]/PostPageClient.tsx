@@ -132,6 +132,7 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
       key={inspectorKey}
       triples={inspectorTriples}
       defaultTripleTermId={inspectorTriples[0]?.termId ?? null}
+      currentPostId={post.id}
     />
   ) : null;
 

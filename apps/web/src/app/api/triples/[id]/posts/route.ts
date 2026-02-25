@@ -12,6 +12,7 @@ type TriplePostsPageProps = {
 
 export async function GET(request: Request, { params }: TriplePostsPageProps) {
   const { id: tripleTermId } = await params;
+  const exclude = new URL(request.url).searchParams.get("exclude");
 
   if (!tripleTermId || typeof tripleTermId !== "string") {
     return NextResponse.json({ error: "Invalid triple ID." }, { status: 400 });
@@ -22,6 +23,7 @@ export async function GET(request: Request, { params }: TriplePostsPageProps) {
     const links = await prisma.postTripleLink.findMany({
       where: {
         termId: tripleTermId,
+        ...(exclude ? { postId: { not: exclude } } : {}),
       },
       include: {
         post: {
