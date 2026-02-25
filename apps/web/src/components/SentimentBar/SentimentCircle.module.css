@@ -1,17 +1,5 @@
-/* ════════════════════════════════════════════════════════════════════════════
-   SENTIMENT CIRCLE — reusable bicolor vote indicator
-   ════════════════════════════════════════════════════════════════════════════ */
-
-/* ── Base ────────────────────────────────────────────────────────────────── */
-
-.circle {
+.wrapper {
   position: relative;
-  border-radius: 50%;
-  background: linear-gradient(
-    to right,
-    var(--stance-supports-text) 50%,
-    var(--stance-refutes-text) 50%
-  );
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,17 +7,9 @@
   flex-shrink: 0;
 }
 
-.circle::before {
-  content: "";
+.ring {
   position: absolute;
-  border-radius: 50%;
-  background: var(--bg-surface);
-}
-
-/* ── Empty state: neutral border ─────────────────────────────────────────── */
-
-.empty {
-  background: var(--border-default);
+  inset: 0;
 }
 
 /* ── Mode: full (52px — detail page / SentimentBar) ──────────────────────── */
@@ -39,26 +19,24 @@
   height: 52px;
 }
 
-.full::before {
-  inset: 3px;
-}
-
-/* ── Mode: compact (32px — feed cards) ───────────────────────────────────── */
+/* ── Mode: compact (24px — feed cards) ───────────────────────────────────── */
 
 .compact {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
-.compact::before {
-  inset: 2px;
-}
+/* ── Text: full mode (centered over SVG) ─────────────────────────────────── */
 
-/* ── Text: full mode ─────────────────────────────────────────────────────── */
-
-.number {
+.content {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.number {
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 700;
@@ -67,8 +45,6 @@
 }
 
 .label {
-  position: relative;
-  z-index: 1;
   font-size: 0.5625rem;
   font-weight: 500;
   color: var(--text-muted);
