@@ -55,29 +55,33 @@ export function SentimentCircle({
           />
         ) : (
           <>
-            <circle
-              cx={center}
-              cy={center}
-              r={r}
-              fill="none"
-              stroke={SUPPORT_COLOR}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${supportLen} ${circumference}`}
-              strokeLinecap="round"
-              transform={`rotate(90 ${center} ${center})`}
-            />
-            <circle
-              cx={center}
-              cy={center}
-              r={r}
-              fill="none"
-              stroke={OPPOSE_COLOR}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${opposeLen} ${circumference}`}
-              strokeDashoffset={-supportLen}
-              strokeLinecap="round"
-              transform={`rotate(90 ${center} ${center})`}
-            />
+            {supportLen > 0 && (
+              <circle
+                cx={center}
+                cy={center}
+                r={r}
+                fill="none"
+                stroke={SUPPORT_COLOR}
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${supportLen} ${circumference}`}
+                strokeLinecap="round"
+                transform={`rotate(90 ${center} ${center})`}
+              />
+            )}
+            {opposeLen > 0 && (
+              <circle
+                cx={center}
+                cy={center}
+                r={r}
+                fill="none"
+                stroke={OPPOSE_COLOR}
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${opposeLen} ${circumference}`}
+                strokeDashoffset={-supportLen}
+                strokeLinecap="round"
+                transform={`rotate(90 ${center} ${center})`}
+              />
+            )}
           </>
         )}
       </svg>
