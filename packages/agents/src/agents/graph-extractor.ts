@@ -52,9 +52,11 @@ CORE TRIPLE:
   Adverbs that are part of the verbal phrase stay in the object:
   "drives capital offshore" => object "capital offshore".
 - When a preposition is essential to the verb's meaning (hide X about Y, spread lies about Y,
-  invest in Y, rely on Y, profit from Y, spy on Y, worry about Y), fold "verb + [noun] + prep"
-  into the predicate so the object is a reusable atom. Only split into a modifier when the prep
-  phrase is truly optional context (time, place, quantity).
+  invest in Y, rely on Y, profit from Y, spy on Y, worry about Y, belong on/in/to Z,
+  depend on Z, result in Z, lead to Z, focus on Z), fold "verb + prep" into the predicate
+  so the object is a reusable atom. Only split into a modifier when the prep phrase is truly
+  optional context (time, place, quantity).
+- NEVER duplicate: if a prep is folded into the predicate, do NOT also emit it as a modifier.
 - Do NOT output a bare preposition as predicate (for/in/of/to/by/with).
 
 ATOM REUSABILITY:
@@ -178,6 +180,10 @@ Claim: "The growth of e-commerce has hurt small businesses."
 Claim: "Public trust depends on transparency in scientific research."
 => { "core": { "subject": "Public trust", "predicate": "depends on", "object": "transparency" },
      "modifiers": [{ "prep": "in", "value": "scientific research" }] }
+
+Claim: "Pineapple belongs on pizza."
+=> { "core": { "subject": "Pineapple", "predicate": "belongs on", "object": "pizza" },
+     "modifiers": [] }
 
 Claim: "Governments hide information about the true shape of the Earth."
 => { "core": { "subject": "Governments", "predicate": "hide information about", "object": "the shape of the Earth" },
