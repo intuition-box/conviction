@@ -48,8 +48,9 @@
   background: var(--bg-surface);
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
   padding: 0.4rem;
-  max-height: 20rem;
+  max-height: 14rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* ── Card-based suggestion items ─────────────────────────── */

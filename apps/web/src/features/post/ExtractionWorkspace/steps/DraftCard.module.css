@@ -11,7 +11,6 @@
   border-left: 3px solid var(--card-accent, var(--color-teal-600));
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
-  overflow: hidden;
 }
 
 /* ── Stance variants ──────────────────────────────────────────────── */
