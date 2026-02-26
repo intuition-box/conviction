@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Composer } from "@/app/_components/Composer/Composer";
 import { Sheet } from "@/app/_components/Sheet/Sheet";
 import { RightPanel } from "@/app/_components/RightPanel/RightPanel";
 import { useIsMobile } from "@/app/_components/RightPanel/useIsMobile";
@@ -9,8 +8,8 @@ import { VoteSection } from "@/components/SentimentBar/VoteSection";
 import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 import { TripleInspector } from "@/components/TripleInspector/TripleInspector";
-import { useExtractionFlow } from "@/features/post/ExtractionWorkspace/hooks/useExtractionFlow";
-import { ExtractionFlowDialog, type DialogStep } from "@/features/post/ExtractionWorkspace/ExtractionFlowDialog";
+import { useComposerFlow } from "@/features/post/ExtractionWorkspace/hooks/useComposerFlow";
+import { ComposerBlock } from "@/features/post/ExtractionWorkspace/ComposerBlock";
 import type { Stance } from "@/features/post/ExtractionWorkspace/extractionTypes";
 import { useToast } from "@/components/Toast/ToastContext";
 
@@ -55,9 +54,6 @@ type PostPageClientProps = {
 export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageClientProps) {
   const { addToast } = useToast();
   const isMobile = useIsMobile();
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogStep, setDialogStep] = useState<DialogStep>("claims");
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTriples, setInspectorTriples] = useState(post.tripleLinks);
   const [treeOpen, setTreeOpen] = useState(false);
@@ -67,13 +63,16 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
     setVoteRefreshKey((k) => k + 1);
   }, []);
 
-  const handlePublishSuccess = (postId: string) => {
-    setDialogOpen(false);
-    setComposerOpen(false);
-    addToast("Reply created", "success", { label: "See", href: `/posts/${postId}` }, 6000);
-  };
-
   const parentMainTripleTermId = post.tripleLinks.find(t => t.role === "MAIN")?.termId ?? null;
+
+  const composerFlow = useComposerFlow({
+    themeSlug: theme.slug,
+    parentPostId: post.id,
+    parentMainTripleTermId,
+    onPublishSuccess: (postId) => {
+      addToast("Reply created", "success", { label: "See", href: `/posts/${postId}` }, 6000);
+    },
+  });
 
   // Batch fetch sentiment data for reply sentiment indicators
   const replyTripleIds = useMemo(() =>
@@ -82,36 +81,20 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
   );
   const { data: sentimentMap } = useSentimentBatch(replyTripleIds);
 
-  const flow = useExtractionFlow({
-    themeSlug: theme.slug,
-    parentPostId: post.id,
-    parentMainTripleTermId,
-    onPublishSuccess: handlePublishSuccess,
-  });
-
   function handleReplyClick(stance: Stance) {
-    flow.setStance(stance);
     setInspectorOpen(false);
-    setComposerOpen(true);
-  }
-
-  async function handleExtract() {
-    const result = await flow.runExtraction();
-    if (result.ok) {
-      setDialogStep(result.proposalCount >= 2 ? "split" : "claims");
-      setDialogOpen(true);
-    }
+    composerFlow.openComposer(stance);
   }
 
   function handleOpenInspector() {
     setInspectorTriples(post.tripleLinks);
-    setComposerOpen(false);
+    composerFlow.closeComposer();
     setInspectorOpen(true);
   }
 
   function handleReplyBadgeClick(tripleTermIds: string[]) {
     setInspectorTriples(tripleTermIds.map(id => ({ termId: id, role: "MAIN" as const })));
-    setComposerOpen(false);
+    composerFlow.closeComposer();
     setInspectorOpen(true);
   }
 
@@ -163,23 +146,7 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
             replies={treeReplies}
           />
 
-          {composerOpen && (
-            <section className={styles.composerSection}>
-              <Composer
-                stance={flow.stance}
-                inputText={flow.inputText}
-                busy={flow.busy}
-                walletConnected={flow.walletConnected}
-                extracting={flow.isExtracting}
-                contextDirty={flow.contextDirty}
-                message={flow.message}
-                status={flow.extractionJob?.status}
-                onInputChange={flow.setInputText}
-                onExtract={handleExtract}
-                onClose={() => setComposerOpen(false)}
-              />
-            </section>
-          )}
+          <ComposerBlock composerFlow={composerFlow} className={styles.composerSection} />
 
           <RepliesGrid
             supportReplies={supportReplies}
@@ -190,15 +157,6 @@ export function PostPageClient({ post, theme, breadcrumbs, replies }: PostPageCl
           />
         </div>
       </div>
-
-      {/* Extraction flow dialog */}
-      <ExtractionFlowDialog
-        flow={flow}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        step={dialogStep}
-        onStepChange={setDialogStep}
-      />
 
       {/* Right panel (desktop) — Inspector only */}
       {!isMobile && (

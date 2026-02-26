@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/Button/Button";
-import { Composer } from "@/app/_components/Composer/Composer";
-import { useExtractionFlow } from "@/features/post/ExtractionWorkspace/hooks/useExtractionFlow";
-import { ExtractionFlowDialog, type DialogStep } from "@/features/post/ExtractionWorkspace/ExtractionFlowDialog";
+import { useComposerFlow } from "@/features/post/ExtractionWorkspace/hooks/useComposerFlow";
+import { ComposerBlock } from "@/features/post/ExtractionWorkspace/ComposerBlock";
 import { useToast } from "@/components/Toast/ToastContext";
 import { TripleTooltip } from "@/components/TripleTooltip/TripleTooltip";
 
@@ -30,30 +29,15 @@ type ThemePageClientProps = {
 export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
   const { addToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogStep, setDialogStep] = useState<DialogStep>("claims");
 
-  const handlePublishSuccess = (postId: string) => {
-    setDialogOpen(false);
-    setComposerOpen(false);
-    addToast("Debate created", "success", { label: "See", href: `/posts/${postId}` }, 6000);
-  };
-
-  const flow = useExtractionFlow({
+  const composerFlow = useComposerFlow({
     themeSlug: theme.slug,
     parentPostId: null,
     themeAtomTermId: theme.atomTermId,
-    onPublishSuccess: handlePublishSuccess,
+    onPublishSuccess: (postId) => {
+      addToast("Debate created", "success", { label: "See", href: `/posts/${postId}` }, 6000);
+    },
   });
-
-  async function handleExtract() {
-    const result = await flow.runExtraction();
-    if (result.ok) {
-      setDialogStep(result.proposalCount >= 2 ? "split" : "claims");
-      setDialogOpen(true);
-    }
-  }
 
   const filteredPosts = useMemo(() => {
     if (!searchQuery.trim()) return rootPosts;
@@ -70,8 +54,8 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
             <p className={styles.kicker}>Theme</p>
             <h1 className={styles.title}>{theme.name}</h1>
           </div>
-          {flow.walletConnected && (
-            <Button variant="primary" onClick={() => setComposerOpen(true)}>
+          {composerFlow.flow.walletConnected && (
+            <Button variant="primary" onClick={() => composerFlow.openComposer()}>
               New debate
             </Button>
           )}
@@ -90,23 +74,7 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
       </section>
 
       {/* Composer inline */}
-      {composerOpen && (
-        <section className={styles.composerSection}>
-          <Composer
-            stance={flow.stance}
-            inputText={flow.inputText}
-            busy={flow.busy}
-            walletConnected={flow.walletConnected}
-            extracting={flow.isExtracting}
-            contextDirty={flow.contextDirty}
-            message={flow.message}
-            status={flow.extractionJob?.status}
-            onInputChange={flow.setInputText}
-            onExtract={handleExtract}
-            onClose={() => setComposerOpen(false)}
-          />
-        </section>
-      )}
+      <ComposerBlock composerFlow={composerFlow} className={styles.composerSection} />
 
       {/* Posts grid */}
       <section className={styles.postsSection}>
@@ -115,8 +83,8 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
             <p className={styles.emptyText}>
               {searchQuery ? "No debates match your search." : "No debates yet in this theme."}
             </p>
-            {!searchQuery && flow.walletConnected && (
-              <Button variant="secondary" onClick={() => setComposerOpen(true)}>
+            {!searchQuery && composerFlow.flow.walletConnected && (
+              <Button variant="secondary" onClick={() => composerFlow.openComposer()}>
                 Create first debate
               </Button>
             )}
@@ -146,15 +114,6 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
           </div>
         )}
       </section>
-
-      {/* Extraction flow dialog */}
-      <ExtractionFlowDialog
-        flow={flow}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        step={dialogStep}
-        onStepChange={setDialogStep}
-      />
     </div>
   );
 }

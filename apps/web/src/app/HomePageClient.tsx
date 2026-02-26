@@ -9,9 +9,8 @@ import { RightPanel } from "@/app/_components/RightPanel/RightPanel";
 import { Sheet } from "@/app/_components/Sheet/Sheet";
 import { useIsMobile } from "@/app/_components/RightPanel/useIsMobile";
 import { TripleInspector } from "@/components/TripleInspector/TripleInspector";
-import { Composer } from "@/app/_components/Composer/Composer";
-import { useExtractionFlow } from "@/features/post/ExtractionWorkspace/hooks/useExtractionFlow";
-import { ExtractionFlowDialog, type DialogStep } from "@/features/post/ExtractionWorkspace/ExtractionFlowDialog";
+import { useComposerFlow } from "@/features/post/ExtractionWorkspace/hooks/useComposerFlow";
+import { ComposerBlock } from "@/features/post/ExtractionWorkspace/ComposerBlock";
 import { useToast } from "@/components/Toast/ToastContext";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 
@@ -75,7 +74,7 @@ type HomePageClientProps = {
 
 /* ── Inline Composer (isolated to re-mount via key) ──────────────────── */
 
-function InlineComposer({
+function InlineComposerBlock({
   target,
   onClose,
   onPublishSuccess,
@@ -84,50 +83,16 @@ function InlineComposer({
   onClose: () => void;
   onPublishSuccess: (postId: string) => void;
 }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogStep, setDialogStep] = useState<DialogStep>("claims");
-
-  const flow = useExtractionFlow({
+  const composerFlow = useComposerFlow({
     themeSlug: target.themeSlug,
     parentPostId: target.postId,
     parentMainTripleTermId: target.mainTripleTermId,
     onPublishSuccess,
+    autoOpen: true,
+    onClose,
   });
 
-  async function handleExtract() {
-    const result = await flow.runExtraction();
-    if (result.ok) {
-      setDialogStep(result.proposalCount >= 2 ? "split" : "claims");
-      setDialogOpen(true);
-    }
-  }
-
-  return (
-    <>
-      <Composer
-        stance={flow.stance}
-        inputText={flow.inputText}
-        busy={flow.busy}
-        walletConnected={flow.walletConnected}
-        extracting={flow.isExtracting}
-        contextDirty={flow.contextDirty}
-        message={flow.message}
-        status={flow.extractionJob?.status}
-        onInputChange={flow.setInputText}
-        onExtract={handleExtract}
-        onClose={onClose}
-        onStanceChange={flow.setStance}
-      />
-
-      <ExtractionFlowDialog
-        flow={flow}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        step={dialogStep}
-        onStepChange={setDialogStep}
-      />
-    </>
-  );
+  return <ComposerBlock composerFlow={composerFlow} />;
 }
 
 /* ── Home Page Component ─────────────────────────────────────────────── */
@@ -187,7 +152,7 @@ export function HomePageClient({ trending, feed, hotTopics, themes, loadMoreRepl
     if (!replyTarget || replyTarget.postId !== postId) return null;
     return (
       <div className={styles.inlineComposer}>
-        <InlineComposer
+        <InlineComposerBlock
           key={postId}
           target={replyTarget}
           onClose={() => setReplyTarget(null)}
