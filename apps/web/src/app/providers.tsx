@@ -3,7 +3,9 @@
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAccount, useWalletClient, WagmiProvider, createConfig, http } from "wagmi";
-import { injected, metaMask } from "wagmi/connectors";
+import { injected } from "wagmi/connectors";
+
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 import { intuitionTestnet } from "@/lib/chain";
 import { ToastProvider } from "@/components/Toast/ToastContext";
@@ -14,7 +16,7 @@ const config = createConfig({
   transports: {
     [intuitionTestnet.id]: http(intuitionTestnet.rpcUrls.default.http[0])
   },
-  connectors: [metaMask(), injected()],
+  connectors: [injected()],
   ssr: true
 });
 
@@ -48,7 +50,9 @@ export function Providers({ children }: PropsWithChildren) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <SiweOnConnect />
-        <ToastProvider>{children}</ToastProvider>
+        <Tooltip.Provider delayDuration={300}>
+          <ToastProvider>{children}</ToastProvider>
+        </Tooltip.Provider>
       </QueryClientProvider>
     </WagmiProvider>
   );
