@@ -256,16 +256,30 @@ export async function POST(request: Request) {
   } catch (error) {
     const safeError = toSafeError(error);
 
+    console.error("[POST /api/extract] extraction failed, falling back to manual mode:", safeError);
+
     await prisma.submission.update({
       where: { id: submission.id },
       data: {
-        status: "FAILED",
+        status: "READY_TO_PUBLISH",
       },
     });
 
-    return NextResponse.json(
-      { error: "Extraction failed.", details: safeError.message },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      submission: {
+        id: submission.id,
+        status: "READY_TO_PUBLISH",
+        createdAt: submission.createdAt.toISOString(),
+        userId: submission.userId,
+        themeSlug: submission.themeSlug,
+        parentPostId: submission.parentPostId,
+        stance: submission.stance,
+      },
+      proposals: [],
+      nestedProposals: [],
+      warning: "Extraction failed. Add claims manually.",
+      details: safeError.message,
+      mode: "manual",
+    });
   }
 }
