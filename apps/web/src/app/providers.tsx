@@ -16,8 +16,7 @@ const config = getDefaultConfig({
   appName: "Debate Market",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
   chains: [intuitionTestnet],
-  // Avoid server-side WalletConnect storage access (indexedDB is browser-only).
-  ssr: false,
+  ssr: true,
 });
 
 function SiweOnConnect() {
