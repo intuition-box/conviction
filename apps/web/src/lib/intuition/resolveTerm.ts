@@ -74,8 +74,6 @@ export async function resolveAtomLabel(
   atom: IntuitionAtom | null | undefined,
   fallbackTermId?: string | null,
 ): Promise<ResolvedAtomLabel> {
-  if (atom?.label) return { label: atom.label, nestedTriple: null };
-
   const candidateIds = [
     ...new Set(
       [atom?.data, atom?.term_id, fallbackTermId].filter(Boolean) as string[],
@@ -93,6 +91,10 @@ export async function resolveAtomLabel(
     } catch {
 
     }
+  }
+
+  if (atom?.label) {
+    return { label: atom.label, nestedTriple: null };
   }
 
   const fallback = atom?.data ?? atom?.term_id;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { TripleInline } from "@/components/TripleInline/TripleInline";
@@ -223,6 +223,41 @@ export function TripleInspector({ triples, defaultTripleTermId, currentPostId, m
   const activeData = activeId ? tripleMap[activeId] : null;
   const activeErr = activeId ? tripleErrors[activeId] : null;
 
+  const displayTriples = useMemo(() => {
+    if (triples.length === 0) return triples;
+
+    const linkedIds = new Set(triples.map((triple) => triple.termId));
+    const nestedChildIds = new Set<string>();
+
+    for (const triple of triples) {
+      const details = tripleMap[triple.termId];
+      if (!details) continue;
+
+      for (const nested of [details.subjectNested, details.objectNested]) {
+        if (nested && linkedIds.has(nested.termId)) {
+          nestedChildIds.add(nested.termId);
+        }
+      }
+    }
+
+    const filtered = triples.filter((triple) => !nestedChildIds.has(triple.termId));
+    return filtered.length > 0 ? filtered : triples;
+  }, [triples, tripleMap]);
+
+  useEffect(() => {
+    if (displayTriples.length === 0) return;
+
+    const stillVisible = activeId ? displayTriples.some((triple) => triple.termId === activeId) : false;
+    if (stillVisible) return;
+
+    const nextId = displayTriples.find((triple) => triple.termId === defaultTripleTermId)?.termId
+      ?? displayTriples[0]?.termId
+      ?? null;
+    if (nextId !== activeId) {
+      setActiveId(nextId);
+    }
+  }, [activeId, defaultTripleTermId, displayTriples]);
+
   // Collect unique nested triples for the active triple (dedup by termId)
   const nestedTriples: NestedTripleData[] = [];
   if (activeData) {
@@ -354,10 +389,10 @@ export function TripleInspector({ triples, defaultTripleTermId, currentPostId, m
         {tab === "structure" && (
           <div className={styles.tabPanel}>
             {/* Triple selector (if multiple) */}
-            {triples.length > 1 && (
+            {displayTriples.length > 1 && (
               <section className={styles.section}>
                 <div className={styles.linkedList}>
-                  {triples.map((t) => {
+                  {displayTriples.map((t) => {
                     const d = tripleMap[t.termId];
                     return (
                       <button key={t.termId} type="button" className={`${styles.linkedItem} ${t.termId === activeId ? styles.linkedItemActive : ""}`} onClick={() => setActiveId(t.termId)}>
