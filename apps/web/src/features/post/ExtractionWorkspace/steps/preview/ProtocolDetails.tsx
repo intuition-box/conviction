@@ -123,9 +123,12 @@ export function ProtocolDetails({
     ? "Resolving\u2026"
     : "See details";
 
+  const existingProposalIds = new Set(tripleSummary.existingTriples.map((t) => t.proposal.id));
+
   const mainTargets = draftPosts.flatMap((draft, draftIndex) => {
     const ref = mainRefByDraft.get(draft.id);
     if (!ref || ref.type === "error") return [];
+    if (ref.type === "proposal" && existingProposalIds.has(ref.id)) return [];
     const mainTarget: MainTarget = ref.type === "proposal"
       ? { type: "proposal", id: ref.id }
       : { type: "nested", nestedId: ref.nestedId, nestedStableKey: ref.nestedStableKey };
