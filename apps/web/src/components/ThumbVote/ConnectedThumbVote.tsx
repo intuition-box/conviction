@@ -8,6 +8,7 @@ import { ThumbVote } from "./ThumbVote";
 import { intuitionTestnet } from "@/lib/chain";
 import { voteOnTriple } from "@/lib/intuition/intuitionVote";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
+import { parseTxError } from "@/lib/getErrorMessage";
 import { useToast } from "@/components/Toast/ToastContext";
 import type { SentimentData } from "@/hooks/useSentimentBatch";
 
@@ -186,18 +187,13 @@ export function ConnectedThumbVote({
 
     if (result.ok) {
       onVoteSuccess?.();
-    } else if (result.error?.includes("HasCounterStake")) {
-      // Revert optimistic update
-      setForCount(prevFor);
-      setAgainstCount(prevAgainst);
-      setUserDirection(prevDirection);
-      addToast("Withdraw opposing position first", "error");
     } else {
       // Revert optimistic update
       setForCount(prevFor);
       setAgainstCount(prevAgainst);
       setUserDirection(prevDirection);
-      addToast(result.error ?? "Vote failed", "error");
+      const { short, isReject } = parseTxError(result.error ?? "Vote failed");
+      addToast(short, isReject ? "info" : "error");
     }
 
     setBusy(false);

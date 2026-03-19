@@ -10,6 +10,7 @@ import { Sheet } from "@/app/_components/Sheet/Sheet";
 import { useIsMobile } from "@/app/_components/RightPanel/useIsMobile";
 import { TripleInspector } from "@/components/TripleInspector/TripleInspector";
 import { EmptyState } from "@/components/EmptyState/EmptyState";
+import { WeekVoteBanner } from "@/app/_components/HomeSidebar/WeekVote";
 import { useComposerFlow } from "@/features/post/ExtractionWorkspace/hooks/useComposerFlow";
 import { ComposerBlock } from "@/features/post/ExtractionWorkspace/ComposerBlock";
 import { useToast } from "@/components/Toast/ToastContext";
@@ -179,6 +180,7 @@ export function HomePageClient({ trending, feed, hotTopics, themes, loadMoreRepl
     <div className={styles.pageWrapper}>
       <div className={styles.page}>
         <div className={styles.feedColumn}>
+          {isMobile && <WeekVoteBanner />}
           <TrendingScroll posts={trending} />
 
           <div className={styles.feedList}>
@@ -201,7 +203,7 @@ export function HomePageClient({ trending, feed, hotTopics, themes, loadMoreRepl
           </div>
         </div>
 
-        <HomeSidebar hotTopics={hotTopics} themes={themes} />
+        <HomeSidebar themes={themes} />
       </div>
 
       {/* Desktop inspector — overlays the sidebar */}

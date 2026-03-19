@@ -9,6 +9,7 @@ import { ConfidenceSlider, type ConfidenceSliderResult } from "./ConfidenceSlide
 import { intuitionTestnet } from "@/lib/chain";
 import { voteOnTriple } from "@/lib/intuition/intuitionVote";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
+import { parseTxError } from "@/lib/getErrorMessage";
 
 type ActionStatus = "idle" | "pending" | "success" | "error";
 
@@ -132,13 +133,11 @@ export function ConnectedConfidenceSlider({
       setSliderResetKey((k) => k + 1);
       fetchUserPosition(tripleTermId);
       onVoteSuccess?.();
-    } else if (res.error?.includes("HasCounterStake")) {
-      setActionMsg("You already have a position on the other side. Withdraw first.");
-      setActionStatus("error");
-      fetchUserPosition(tripleTermId);
     } else {
-      setActionStatus("error");
-      setActionMsg(res.error);
+      const { short, isReject } = parseTxError(res.error ?? "Vote failed");
+      setActionStatus(isReject ? "idle" : "error");
+      setActionMsg(short);
+      if (!isReject) fetchUserPosition(tripleTermId);
     }
   }
 

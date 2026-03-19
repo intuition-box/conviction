@@ -22,6 +22,10 @@
   color: var(--text-primary);
 }
 
+.titleCenter {
+  justify-content: center;
+}
+
 /* ── Hot topics ──────────────────────────────────────────────────────── */
 
 .hotTopicsList {
