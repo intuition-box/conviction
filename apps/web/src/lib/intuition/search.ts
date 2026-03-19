@@ -200,16 +200,17 @@ export async function searchAtomsServer(
   limit: number,
   exactLookupConfig?: ExactLookupConfig,
 ): Promise<AtomCandidate[]> {
+  const cleanQuery = query.replace(/^(the|a|an)\s+/i, "").trim() || query;
   const sources: Promise<AtomCandidate[]>[] = [
-    fetchExactAtoms(query),
-    fetchFuzzyAtoms(query, limit),
-    fetchSemanticAtomsAsCandidate(query, limit),
+    fetchExactAtoms(cleanQuery),
+    fetchFuzzyAtoms(cleanQuery, limit),
+    fetchSemanticAtomsAsCandidate(cleanQuery, limit),
   ];
 
   // If on-chain lookup config is provided, run exact on-chain check in parallel
   if (exactLookupConfig) {
     sources.push(
-      findExactAtomCandidates(query, exactLookupConfig).catch(() => []),
+      findExactAtomCandidates(cleanQuery, exactLookupConfig).catch(() => []),
     );
   }
 

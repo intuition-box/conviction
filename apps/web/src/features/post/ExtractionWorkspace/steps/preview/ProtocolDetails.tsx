@@ -65,6 +65,7 @@ export type ProtocolDetailsProps = {
 
   mainNestedCount?: number;
   mainRefByDraft: Map<string, MainRef | null>;
+  nestedTripleStatuses?: Map<string, string>;
 };
 
 export function ProtocolDetails({
@@ -92,6 +93,7 @@ export function ProtocolDetails({
   directMainProposalIds,
   mainNestedCount = 0,
   mainRefByDraft,
+  nestedTripleStatuses,
 }: ProtocolDetailsProps) {
   const newTermCount = atomSummary.newAtoms.length;
   const newClaimCount = tripleSummary.newTriples.length;
@@ -156,13 +158,21 @@ export function ProtocolDetails({
     if (nestedSubTripleKeys.has(t.proposal.stableKey)) return false;
     return true;
   });
-  const supportingNestedEdges = nestedEdges.filter((edge) => !mainOuterNestedKeys.has(edge.stableKey));
+  const allSupportingNestedEdges = nestedEdges.filter((edge) => !mainOuterNestedKeys.has(edge.stableKey));
+  const existingNestedEdges = allSupportingNestedEdges.filter((edge) => nestedTripleStatuses?.has(edge.stableKey));
+  const supportingNestedEdges = allSupportingNestedEdges.filter((edge) => !nestedTripleStatuses?.has(edge.stableKey));
+  const existingMainNested = mainTargets.filter((e) =>
+    e.mainTarget.type === "nested" && nestedTripleStatuses?.has((e.mainTarget as { nestedStableKey: string }).nestedStableKey),
+  );
+  const newMainTargets = mainTargets.filter((e) =>
+    e.mainTarget.type !== "nested" || !nestedTripleStatuses?.has((e.mainTarget as { nestedStableKey: string }).nestedStableKey),
+  );
 
   // Derived triples that are also proposals would appear twice — filter them
   const proposalStableKeys = new Set(proposals.map((p) => p.stableKey));
   const orphanDerivedTriples = derivedTriples.filter((dt) => !proposalStableKeys.has(dt.stableKey));
 
-  const displayedClaimCount = mainTargets.length + supportingCoreTriples.length + supportingNestedEdges.length + orphanDerivedTriples.length;
+  const displayedClaimCount = newMainTargets.length + supportingCoreTriples.length + supportingNestedEdges.length + orphanDerivedTriples.length;
 
   return (
     <details className={styles.protocolDetails}>
@@ -201,7 +211,7 @@ export function ProtocolDetails({
                     {labels.publishedClaimsLabel} ({displayedClaimCount})
                   </summary>
                   <ul className={styles.pdFeeDetail}>
-                    {mainTargets.map((entry) => (
+                    {newMainTargets.map((entry) => (
                       <li key={`main-${entry.draftId}`}>
                         <StructuredTripleInline
                           target={entry.mainTarget}
@@ -315,6 +325,30 @@ export function ProtocolDetails({
                       subject={safeDisplayLabel(t.proposal.subjectMatchedLabel, t.proposal.sText)}
                       predicate={safeDisplayLabel(t.proposal.predicateMatchedLabel, t.proposal.pText)}
                       object={safeDisplayLabel(t.proposal.objectMatchedLabel, t.proposal.oText)}
+                      nested
+                      wrap
+                    />
+                  </li>
+                ))}
+                {existingMainNested.map((entry) => (
+                  <li key={`nested-main-${entry.draftId}`}>
+                    <StructuredTripleInline
+                      target={entry.mainTarget}
+                      proposals={proposals}
+                      nestedProposals={nestedEdges}
+                      nestedRefLabels={nestedRefLabels}
+                      derivedTriples={derivedTriples}
+                      nested
+                      wrap
+                    />
+                  </li>
+                ))}
+                {existingNestedEdges.map((edge) => (
+                  <li key={`nested-${edge.id}`}>
+                    <TripleInline
+                      subject={<StructuredTermInline termRef={edge.subject} proposals={proposals} nestedProposals={nestedEdges} nestedRefLabels={nestedRefLabels} derivedTriples={derivedTriples} />}
+                      predicate={edge.predicate}
+                      object={<StructuredTermInline termRef={edge.object} proposals={proposals} nestedProposals={nestedEdges} nestedRefLabels={nestedRefLabels} derivedTriples={derivedTriples} />}
                       nested
                       wrap
                     />

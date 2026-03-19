@@ -49,6 +49,7 @@ export type PreviewModelInputs = {
   proposals: ProposalDraft[];
   derivedTriples: DerivedTripleDraft[];
   nestedRefLabels: Map<string, string>;
+  nestedTripleStatuses: Map<string, string>;
   extractionJob: { status: string } | null;
   parentPostId?: string | null;
   parentMainTripleTermId?: string | null;
@@ -101,6 +102,7 @@ export type PreviewModel = {
   publishPlan: PublishPlan;
   orphanedKeys: Set<string>;
   hasBlockingOrphans: boolean;
+  nestedTripleStatuses: Map<string, string>;
 };
 
 export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
@@ -124,6 +126,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     proposals,
     derivedTriples,
     nestedRefLabels,
+    nestedTripleStatuses,
     extractionJob,
     parentPostId,
     parentMainTripleTermId,
@@ -147,7 +150,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
         ? "error"
         : "preview";
 
-  const contextCount = visibleNestedProposals.length + derivedTriples.length;
+  const contextCount = visibleNestedProposals.length + derivedTriples.length - nestedTripleStatuses.size;
 
   const publishPlan = useMemo(
     () =>
@@ -251,14 +254,17 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
 
   const existingDirectMainCount = tripleSummary.existingTriples
     .filter((t) => directMainProposalIds.has(t.proposal.id)).length;
-  const existingTripleCount = tripleSummary.existingTriples.length;
+
+  const existingNestedCount = nestedTripleStatuses.size;
+  const existingNestedMainCount = [...mainNestedIds].filter((key) => nestedTripleStatuses.has(key)).length;
+  const existingTripleCount = tripleSummary.existingTriples.length + existingNestedCount;
 
   const newDirectMainCount = tripleSummary.newTriples
     .filter((t) => directMainProposalIds.has(t.proposal.id)).length;
   const newNonMainCoreCount = tripleSummary.newTriples.length - newDirectMainCount;
 
-  const newNestedMainCount = mainNestedIds.size;
-  const newNonMainNestedCount = Math.max(0, visibleNestedProposals.length - newNestedMainCount);
+  const newNestedMainCount = mainNestedIds.size - existingNestedMainCount;
+  const newNonMainNestedCount = Math.max(0, visibleNestedProposals.length - mainNestedIds.size - (existingNestedCount - existingNestedMainCount));
 
   const newDerivedCount = derivedTriples.length;
 
@@ -423,5 +429,6 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     publishPlan,
     orphanedKeys,
     hasBlockingOrphans,
+    nestedTripleStatuses,
   };
 }

@@ -348,6 +348,7 @@ export function useExtractionFlow({ themeSlug, parentPostId, parentMainTripleTer
     approvedProposals,
     address,
     extraAtomLabels,
+    nestedProposals: visibleNestedProposals,
     onTripleMatched: crud.setMatchedTripleTermId,
     onAtomResolved: crud.resolveProposalAtom,
   });
@@ -441,6 +442,7 @@ export function useExtractionFlow({ themeSlug, parentPostId, parentMainTripleTer
     approvedTripleStatusError: resolution.approvedTripleStatusError,
     semanticSkipped: resolution.semanticSkipped,
     resolvedAtomMap: resolution.resolvedAtomMap,
+    nestedTripleStatuses: resolution.nestedTripleStatuses,
     retryTripleCheck: resolution.retryCheck,
     publishedPosts,
     isPublishing: publish.isPublishing,

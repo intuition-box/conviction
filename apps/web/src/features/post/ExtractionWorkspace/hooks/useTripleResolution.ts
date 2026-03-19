@@ -11,6 +11,7 @@ import {
   type ApprovedProposalWithRole,
   type ApprovedTripleStatus,
   type ApprovedTripleStatusState,
+  type NestedProposalDraft,
 } from "../extraction";
 
 const TIMEOUT_ATOMS = 12_000;
@@ -69,6 +70,8 @@ type UseTripleResolutionParams = {
   address: `0x${string}` | undefined;
   /** Extra atom labels to resolve (e.g. from nested edges / derived triples). */
   extraAtomLabels?: string[];
+  /** Nested proposals to check for existing on-chain triples. */
+  nestedProposals?: NestedProposalDraft[];
   onTripleMatched?: (proposalId: string, tripleTermId: string, atoms?: TripleMatchAtoms) => void;
   onAtomResolved?: (proposalId: string, field: "sText" | "pText" | "oText", termId: string, canonicalLabel: string) => void;
 };
@@ -83,6 +86,8 @@ type UseTripleResolutionReturn = {
   semanticSkipped: boolean;
   /** Resolved atom labels → termId (normalized label key). */
   resolvedAtomMap: Map<string, string>;
+  /** Nested edge stableKey → tripleTermId for existing nested triples. */
+  nestedTripleStatuses: Map<string, string>;
   /** Re-trigger the verification check (e.g. after timeout). */
   retryCheck: () => void;
 };
@@ -113,6 +118,7 @@ export function useTripleResolution({
   approvedProposals,
   address,
   extraAtomLabels,
+  nestedProposals,
   onTripleMatched,
   onAtomResolved,
 }: UseTripleResolutionParams): UseTripleResolutionReturn {
@@ -122,6 +128,7 @@ export function useTripleResolution({
   const [approved, dispatchApproved] = useReducer(approvedResolutionReducer, INITIAL_APPROVED);
   const [semanticSkipped, setSemanticSkipped] = useState(false);
   const [resolvedAtomMap, setResolvedAtomMap] = useState<Map<string, string>>(new Map());
+  const [nestedTripleStatuses, setNestedTripleStatuses] = useState<Map<string, string>>(new Map());
   const [retryTrigger, setRetryTrigger] = useState(0);
 
   const approvedTripleLookupId = useRef(0);
@@ -480,6 +487,67 @@ export function useTripleResolution({
         }
         setResolvedAtomMap(fullAtomMap);
 
+        // Resolve nested triples — single pass after flat resolution
+        const nestedStatuses = new Map<string, string>();
+        if (nestedProposals?.length) {
+          // Build resolvedFlatTripleMap from flat proposals already resolved
+          const resolvedFlatTripleMap = new Map<string, string>();
+          for (const status of nextStatuses) {
+            if (status.isExisting && status.tripleTermId) {
+              const proposal = approvedProposals.find((p) => p.id === status.proposalId);
+              if (proposal) resolvedFlatTripleMap.set(proposal.stableKey, status.tripleTermId);
+            }
+          }
+
+          // Case-insensitive atom lookup
+          const lowerAtomMap = new Map<string, string>();
+          for (const [label, termId] of fullAtomMap) {
+            lowerAtomMap.set(label.toLowerCase(), termId);
+          }
+
+          // Resolve nested refs: atom → lowerAtomMap, triple → resolvedFlatTripleMap
+          const nestedEntries: Array<{ stableKey: string; key: string; sId: string; pId: string; oId: string }> = [];
+          for (const edge of nestedProposals) {
+            const sId = edge.subject.type === "atom"
+              ? lowerAtomMap.get(normalizeText(edge.subject.label).toLowerCase())
+              : resolvedFlatTripleMap.get(edge.subject.tripleKey);
+            const pId = lowerAtomMap.get(normalizeText(edge.predicate).toLowerCase());
+            const oId = edge.object.type === "atom"
+              ? lowerAtomMap.get(normalizeText(edge.object.label).toLowerCase())
+              : resolvedFlatTripleMap.get(edge.object.tripleKey);
+            if (sId && pId && oId) {
+              const key = makeTripleKey(sId, pId, oId);
+              nestedEntries.push({ stableKey: edge.stableKey, key, sId, pId, oId });
+            }
+          }
+
+          if (nestedEntries.length > 0 && active && requestId === approvedTripleLookupId.current) {
+            try {
+              const tripleData = await fetchJsonWithTimeout<ResolveTriplesResponse>(
+                "/api/intuition/resolve-triples",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    address,
+                    combinations: nestedEntries.map((e) => [e.sId, e.pId, e.oId]),
+                  }),
+                },
+                TIMEOUT_TRIPLES,
+              );
+              for (const entry of nestedEntries) {
+                const tripleId = tripleData.byKey[entry.key] ?? null;
+                if (tripleId) nestedStatuses.set(entry.stableKey, tripleId);
+              }
+            } catch {
+              // Nested resolution failed — not blocking
+            }
+          }
+        }
+        setNestedTripleStatuses(nestedStatuses);
+
+        if (!active || requestId !== approvedTripleLookupId.current) return;
+
         dispatchApproved({ type: "READY", statuses: nextStatuses });
       } catch (error: unknown) {
         if (!active || requestId !== approvedTripleLookupId.current) return;
@@ -498,7 +566,7 @@ export function useTripleResolution({
     return () => {
       active = false;
     };
-  }, [approvedProposals, address, extraAtomLabels, retryTrigger]);
+  }, [approvedProposals, address, extraAtomLabels, nestedProposals, retryTrigger]);
 
   const retryCheck = useCallback(() => setRetryTrigger((n) => n + 1), []);
 
@@ -511,6 +579,7 @@ export function useTripleResolution({
     approvedTripleStatusError: approved.error,
     semanticSkipped,
     resolvedAtomMap,
+    nestedTripleStatuses,
     retryCheck,
   };
 }

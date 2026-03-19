@@ -104,6 +104,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     themeAtomTermId: flow.themeAtomTermId ?? null,
     parentClaim: flow.parentClaim,
     resolvedAtomMap: flow.resolvedAtomMap,
+    nestedTripleStatuses: flow.nestedTripleStatuses,
     onConnect,
     onBack,
     publishOnchain,
@@ -348,6 +349,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
           stanceTriples={stanceTriples}
           tagTriples={tagTriples}
           mainRefByDraft={mainRefByDraft}
+          nestedTripleStatuses={model.nestedTripleStatuses}
         />
       </div>
     );
@@ -481,6 +483,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
               directMainProposalIds={model.directMainProposalIds}
               mainNestedCount={model.mainNestedCount}
               mainRefByDraft={mainRefByDraft}
+              nestedTripleStatuses={model.nestedTripleStatuses}
             />
           )}
 
