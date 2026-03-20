@@ -118,7 +118,7 @@ export function useAddCandidate() {
         }
 
         if (!subjectAtomId) {
-          const pinnedUri = await pinThing({ name: candidateLabel });
+          const pinnedUri = await pinThing({ name: candidateLabel, description: "", image: "", url: "" });
           if (!pinnedUri) {
             setError("Failed to pin atom metadata.");
             return null;

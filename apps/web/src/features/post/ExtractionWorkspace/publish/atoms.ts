@@ -254,7 +254,7 @@ export async function resolveAtoms(
       const atomCost = await multiVaultGetAtomCost(sdkReadConfig(ctx.writeConfig));
 
       const pinResults = await Promise.all(
-        createLabels.map((label) => pinThing({ name: label }))
+        createLabels.map((label) => pinThing({ name: label, description: "", image: "", url: "" }))
       );
       const failedIdx = pinResults.findIndex((uri) => !uri);
       if (failedIdx !== -1) {
