@@ -10,6 +10,7 @@ export type RefineProposal = {
   role: "primary" | "supporting";
 
   postNumber?: number;
+  stableKey?: string;
 };
 
 export type SearchAtomsFn = (query: string, limit: number) => Promise<Array<{
@@ -22,6 +23,14 @@ export type SearchTriplesFn = (query: string, limit: number) => Promise<Array<{
   counterHolders: number | null; counterShares: number | null; counterMarketCap: number | null; counterSharePrice: number | null;
 }>>;
 
+type NestedEdgeRef = { type: string; tripleKey?: string; label?: string };
+type NestedEdgeForPrompt = {
+  stableKey: string;
+  predicate: string;
+  subject: NestedEdgeRef;
+  object: NestedEdgeRef;
+};
+
 export type RefineChatOptions = {
   model: LanguageModel;
   messages: ModelMessage[];
@@ -33,13 +42,102 @@ export type RefineChatOptions = {
   searchTriples?: SearchTriplesFn;
   reasoningSummary?: string;
   draftPosts?: Array<{ body: string }>;
+  nestedEdges?: NestedEdgeForPrompt[];
+  tripleLabels?: Map<string, { subject: string; predicate: string; object: string }>;
 };
 
-function buildSystemPrompt(opts: Pick<RefineChatOptions, "sourceText" | "themeTitle" | "parentClaim" | "proposals" | "reasoningSummary" | "draftPosts">) {
+function renderTermRef(
+  ref: NestedEdgeRef,
+  edgeMap: Map<string, NestedEdgeForPrompt>,
+  labels: Map<string, { subject: string; predicate: string; object: string }>,
+  depth = 0,
+): string {
+  if (depth > 5) return ref.label ?? "?";
+  if (ref.type === "atom") return ref.label ?? "?";
+  if (ref.type === "triple" && ref.tripleKey) {
+    const edge = edgeMap.get(ref.tripleKey);
+    if (edge) return renderNestedEdge(edge, edgeMap, labels, depth + 1);
+    const lbl = labels.get(ref.tripleKey);
+    if (lbl) return `[${lbl.subject} | ${lbl.predicate} | ${lbl.object}]`;
+    return ref.label ?? "?";
+  }
+  return ref.label ?? "?";
+}
+
+function renderNestedEdge(
+  edge: NestedEdgeForPrompt,
+  edgeMap: Map<string, NestedEdgeForPrompt>,
+  labels: Map<string, { subject: string; predicate: string; object: string }>,
+  depth = 0,
+): string {
+  const s = renderTermRef(edge.subject, edgeMap, labels, depth);
+  const o = renderTermRef(edge.object, edgeMap, labels, depth);
+  return `[${s} | ${edge.predicate} | ${o}]`;
+}
+
+function findRootEdgeForProposal(
+  proposalKey: string,
+  edges: NestedEdgeForPrompt[],
+): NestedEdgeForPrompt | null {
+  const involved = new Set<string>();
+  for (const e of edges) {
+    if (
+      (e.subject.type === "triple" && e.subject.tripleKey === proposalKey) ||
+      (e.object.type === "triple" && e.object.tripleKey === proposalKey)
+    ) {
+      involved.add(e.stableKey);
+    }
+  }
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const e of edges) {
+      if (involved.has(e.stableKey)) continue;
+      if (
+        (e.subject.type === "triple" && e.subject.tripleKey && involved.has(e.subject.tripleKey)) ||
+        (e.object.type === "triple" && e.object.tripleKey && involved.has(e.object.tripleKey))
+      ) {
+        involved.add(e.stableKey);
+        changed = true;
+      }
+    }
+  }
+
+  const referencedKeys = new Set<string>();
+  for (const e of edges) {
+    if (!involved.has(e.stableKey)) continue;
+    if (e.subject.type === "triple" && e.subject.tripleKey) referencedKeys.add(e.subject.tripleKey);
+    if (e.object.type === "triple" && e.object.tripleKey) referencedKeys.add(e.object.tripleKey);
+  }
+  for (const e of edges) {
+    if (involved.has(e.stableKey) && !referencedKeys.has(e.stableKey)) return e;
+  }
+  return null;
+}
+
+function buildSystemPrompt(opts: Pick<RefineChatOptions, "sourceText" | "themeTitle" | "parentClaim" | "proposals" | "reasoningSummary" | "draftPosts" | "nestedEdges" | "tripleLabels">) {
+  const edgeMap = new Map<string, NestedEdgeForPrompt>();
+  for (const e of (opts.nestedEdges ?? [])) edgeMap.set(e.stableKey, e);
+  const labels = opts.tripleLabels ?? new Map<string, { subject: string; predicate: string; object: string }>();
+
+  const proposalNestedDisplay = new Map<string, string>();
+  for (const p of opts.proposals) {
+    if (!p.stableKey) continue;
+    const root = findRootEdgeForProposal(p.stableKey, opts.nestedEdges ?? []);
+    if (root) {
+      proposalNestedDisplay.set(p.id, renderNestedEdge(root, edgeMap, labels));
+    }
+  }
+
   const proposalList = opts.proposals
     .map((p, i) => {
       const postLabel = p.postNumber != null ? `Post ${p.postNumber}` : `#${i + 1}`;
-      return `  ${postLabel}. [${p.id}] ${p.subject} | ${p.predicate} | ${p.object}`;
+      const nestedStr = proposalNestedDisplay.get(p.id);
+      const display = nestedStr
+        ? `${p.subject} | ${p.predicate} | ${p.object}  →  ${nestedStr}`
+        : `${p.subject} | ${p.predicate} | ${p.object}`;
+      return `  ${postLabel}. [${p.id}] ${display}`;
     })
     .join("\n");
 
@@ -52,7 +150,9 @@ function buildSystemPrompt(opts: Pick<RefineChatOptions, "sourceText" | "themeTi
   if (postNumbers.size > 1) {
     const lines = Array.from(postNumbers).sort((a, b) => a - b).map((num) => {
       const main = opts.proposals.find((p) => p.postNumber === num && p.role === "primary");
-      const label = main ? `${main.subject} | ${main.predicate} | ${main.object}` : "(no primary)";
+      if (!main) return `  Post ${num}: (no primary)`;
+      const nestedStr = proposalNestedDisplay.get(main.id);
+      const label = nestedStr ?? `${main.subject} | ${main.predicate} | ${main.object}`;
       return `  Post ${num}: ${label}`;
     });
     multiPostBlock = `\n\n## Posts\nThis content has been split into ${postNumbers.size} posts:\n${lines.join("\n")}\nWhen the user refers to a specific post, use the post number.`;

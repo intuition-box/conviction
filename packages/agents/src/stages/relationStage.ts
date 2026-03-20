@@ -16,8 +16,8 @@ export type RelationDeps = {
 
 import {
   RELATION_MARKERS_RE,
-  ALLOWED_RELATION_PREDICATES,
-  CAUSAL_PREDS,
+  isAllowedRelationPredicate,
+  isCausalPred,
   CAUSAL_SENTENCE_RE,
 } from "../helpers/rules/extractionRules.js";
 
@@ -68,7 +68,7 @@ export async function runRelationStage(
       if (Array.isArray(relOut.relations)) {
         for (const r of relOut.relations) {
           const normalizedPred = String(r.predicate).trim().toLowerCase();
-          if (!ALLOWED_RELATION_PREDICATES.has(normalizedPred)) continue;
+          if (!isAllowedRelationPredicate(normalizedPred)) continue;
           const from = idxToTriple.get(r.from);
           const to = idxToTriple.get(r.to);
           if (!from || !to) continue;
@@ -106,10 +106,10 @@ export async function runRelationStage(
 
   const hadCausalEdge =
 
-    nested.slice(nestedCountBefore).some((e) => CAUSAL_PREDS.has(e.predicate)) ||
+    nested.slice(nestedCountBefore).some((e) => isCausalPred(e.predicate)) ||
 
     nested.slice(0, nestedCountBefore).some((e) =>
-      CAUSAL_PREDS.has(e.predicate) &&
+      isCausalPred(e.predicate) &&
       (isSegmentTriple(e.subject) || isSegmentTriple(e.object)),
     );
 
@@ -146,7 +146,7 @@ export async function runRelationStage(
         if (Array.isArray(relOut.relations)) {
           for (const r of relOut.relations) {
             const normalizedPred = String(r.predicate).trim().toLowerCase();
-            if (!ALLOWED_RELATION_PREDICATES.has(normalizedPred)) continue;
+            if (!isAllowedRelationPredicate(normalizedPred)) continue;
             const from = allTriples.get(r.from);
             const to = allTriples.get(r.to);
             if (!from || !to) continue;

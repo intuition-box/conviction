@@ -43,7 +43,7 @@ type RawNestedEdge = {
 
 type RequestBody = {
   messages: ModelMessage[];
-  proposals: (RefineProposal & { stableKey?: string })[];
+  proposals: RefineProposal[];
   sourceText: string;
   themeTitle?: string;
   parentClaim?: string;
@@ -290,6 +290,18 @@ export async function POST(request: Request) {
   try {
     const model = getGroqModel();
 
+    const tripleLabels = new Map<string, { subject: string; predicate: string; object: string }>();
+    for (const p of proposals) {
+      if (p.stableKey) {
+        tripleLabels.set(p.stableKey, { subject: p.subject, predicate: p.predicate, object: p.object });
+      }
+    }
+    for (const dt of (rawDerivedTriples ?? [])) {
+      if (dt.stableKey && !tripleLabels.has(dt.stableKey)) {
+        tripleLabels.set(dt.stableKey, { subject: dt.subject, predicate: dt.predicate, object: dt.object });
+      }
+    }
+
     const config = getRefineStreamConfig({
       model,
       messages,
@@ -299,6 +311,8 @@ export async function POST(request: Request) {
       parentClaim,
       reasoningSummary,
       draftPosts,
+      nestedEdges: rawNestedEdges,
+      tripleLabels,
       searchAtoms: async (query, limit) => {
         return searchAtomsServer(query, limit, exactLookupConfig);
       },

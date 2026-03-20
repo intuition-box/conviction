@@ -105,13 +105,13 @@ Sentence: "Nuclear energy reduces CO2 emissions, and studies show it has the low
 
 Sentence: "According to the IPCC, global temperatures have risen by 1.2C since pre-industrial times."
 => claims:
-  { "text": "The IPCC reports that global temperatures have risen by 1.2C since pre-industrial times.", "role": "MAIN", "group": 0, "candidateKind": "meta", "confidence": 0.95 }
-(Attribution is the MAIN — it's what the user actually wrote. The pipeline extracts the inner proposition automatically.)
+  { "text": "The IPCC reports that global temperatures have risen by 1.2C since pre-industrial times.", "role": "MAIN", "group": 0, "candidateKind": "standard", "confidence": 0.95 }
+(Attribution kept as ONE claim. The graph extractor nests it: S="IPCC" P="reports" O=[...temperatures have risen...].)
 
 Sentence: "If backward time travel were possible, we would have seen travelers from the future."
 => claims:
-  { "text": "If backward time travel were possible, we would have seen travelers from the future.", "role": "MAIN", "group": 0, "candidateKind": "conditional", "confidence": 0.95 }
-(Full conditional kept — the downstream pipeline separates condition from conclusion automatically)
+  { "text": "If backward time travel were possible, we would have seen travelers from the future.", "role": "MAIN", "group": 0, "candidateKind": "standard", "confidence": 0.95 }
+(Full conditional kept as ONE claim. The graph extractor nests it: S=[...seen travelers...] P="if" O=[...time travel were possible].)
 
 Sentence: "AI will replace most jobs, and also pineapple belongs on pizza."
 => claims:
@@ -120,13 +120,13 @@ Sentence: "AI will replace most jobs, and also pineapple belongs on pizza."
 
 Sentence: "Renewable energy is cheaper than fossil fuels, which is why many countries are transitioning."
 => claims:
-  { "text": "Renewable energy is cheaper than fossil fuels, which is why many countries are transitioning.", "role": "MAIN", "group": 0, "candidateKind": "causal", "confidence": 0.9 }
-(Cause-effect linked by "which is why" → ONE claim. The graph extractor nests it as S=[...cheaper than fossil fuels] P="which is why" O=[countries are transitioning].)
+  { "text": "Renewable energy is cheaper than fossil fuels, which is why many countries are transitioning.", "role": "MAIN", "group": 0, "candidateKind": "standard", "confidence": 0.9 }
+(Discourse connector "which is why" → ONE claim. The graph extractor nests it as S=[...cheaper...] P="which is why" O=[...transitioning].)
 
 Sentence: "The education system should be reformed because standardized testing does not measure real intelligence, and it discourages creative thinking."
 => claims:
-  { "text": "The education system should be reformed because standardized testing does not measure real intelligence.", "role": "MAIN", "group": 0, "candidateKind": "causal", "confidence": 0.95 }
-  { "text": "The education system should be reformed because standardized testing discourages creative thinking.", "role": "MAIN", "group": 1, "candidateKind": "causal", "confidence": 0.95 }
+  { "text": "The education system should be reformed because standardized testing does not measure real intelligence.", "role": "MAIN", "group": 0, "candidateKind": "standard", "confidence": 0.95 }
+  { "text": "The education system should be reformed because standardized testing discourages creative thinking.", "role": "MAIN", "group": 1, "candidateKind": "standard", "confidence": 0.95 }
 (Compound causal — each reason becomes a full claim preserving the main assertion. NEVER output standalone reason fragments alongside.)
 CO-REFERENCE: When splitting compound causal, resolve pronouns. "it discourages" → "standardized testing discourages" (resolve "it" to the actual subject from the first reason).
 
@@ -172,14 +172,12 @@ FORBIDDEN:
 - Do NOT add filler words not in the original text ("true", "obviously", "indeed", "actually").
 - Do NOT merge sentences or create new abstractions.
 
-SPLITTING — split ONLY on explicit discourse markers:
-- Contrast: but/however/although/though/yet
-- Cause: because/therefore/so
-- Compound causal: "X because A and B" → split into "X because A" + "X because B"
-  Each reason MUST keep the full main assertion. NEVER output the reasons as standalone claims.
-- Condition: if/unless/when/whenever
-- Which-clause: ", which is why / which means / which shows ..." — keep as ONE claim.
-  The graph extractor handles the nesting (S=[first part] P="which is why" O=[second part]).
+SPLITTING — split ONLY on "and" connecting independent ideas:
+- Causal/Consequential/Conditional/Meta markers (because, therefore, so, which is why, if, unless,
+  when, says/argues/claims that) → keep as ONE claim. The graph extractor handles the nesting.
+- Compound causal: "X because A and B" where A and B are INDEPENDENT reasons →
+  split into "X because A" + "X because B". Each keeps the full main assertion.
+  "X because A and B" where A+B form ONE reason → keep as ONE claim.
 - "and" connecting two debatable clauses — SPLIT when each side has its own
   finite verb and could stand alone as a sentence.
   SPLIT: "AI will replace jobs and governments should regulate it" (two subjects, two verbs)

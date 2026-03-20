@@ -3,18 +3,16 @@ import type { LanguageModel } from "ai";
 import { z } from "zod";
 import type { RecursiveSlot } from "../helpers/claimPlanner.js";
 
-const LeafTriple = z.object({
-  subject: z.string().min(1),
-  predicate: z.string().min(1),
-  object: z.string().min(1),
-});
-
+// 4-level Zod nesting — must match GRAPH_OUT_JSON_SCHEMA depth
+const Level4 = z.string().min(1);
+const Level3 = z.union([z.string().min(1), z.object({ subject: Level4, predicate: z.string().min(1), object: Level4 })]);
+const Level2 = z.union([z.string().min(1), z.object({ subject: Level3, predicate: z.string().min(1), object: Level3 })]);
 const AtomOrTriple = z.union([
   z.string().min(1),
   z.object({
-    subject: z.union([z.string().min(1), LeafTriple]),
+    subject: Level2,
     predicate: z.string().min(1),
-    object: z.union([z.string().min(1), LeafTriple]),
+    object: Level2,
   }),
 ]) as z.ZodType<RecursiveSlot>;
 
@@ -161,9 +159,32 @@ COMPARATIVES (than / as...as):
 - "X is as ADJ as Y" -> predicate includes "is as ADJ as", object is Y.
 - NEVER strip "than" or comparative "as".
 
+DISCOURSE CONNECTORS (because, which is why, therefore, if, unless, so, etc.):
+- When the claim contains a discourse connector linking two sub-claims, the connector
+  becomes the CORE PREDICATE and each sub-claim becomes a NESTED subject/object triple.
+- "X because Y" → S=[X as triple], P="because", O=[Y as triple]
+- "X, which is why Y" → S=[X as triple], P="which is why", O=[Y as triple]
+- "If C, A" → S=[A as triple], P="if", O=[C as triple]
+- "X therefore Y" → S=[X as triple], P="therefore", O=[Y as triple]
+- "X, so Y" (not "so that") → S=[X as triple], P="so", O=[Y as triple]
+- "X says/argues/claims that Y" → S="X", P="says/argues/claims", O=[Y as triple]
+- Each nested S and O must have exactly 3 slots (subject, predicate, object).
+- Apply all other rules (nesting, denominalization, pronouns) inside each nested triple.
+
+PREDICATE HYGIENE:
+- The predicate MUST be a verb phrase: verb (+ modal/negation + essential preposition).
+- FORBIDDEN predicate patterns:
+  * Bare adjectives without copula: "important" → "is important"
+  * Noun fragments: "the reason" → restructure as verb
+  * Trailing noise: "collect so", "were so" → strip trailing filler
+  * Dangling prepositions without verb: "on", "about" → find the verb
+- Self-check: can you conjugate the predicate? If not, it's not a verb phrase.
+
 PRONOUN RESOLUTION:
-- Use sentence_context ONLY to resolve an obvious leading pronoun subject (It/This/They/These/Those).
-- Do NOT rewrite other words.
+- Use sentence_context to resolve ALL leading pronouns: It/This/They/These/Those/Its/Their/We/He/She.
+- Also resolve possessives: "its usage" → "[resolved entity]'s usage".
+- Do NOT resolve pronouns in object position unless they create a weak object.
+- Do NOT rewrite content words beyond pronoun resolution.
 
 FAITHFULNESS:
 - Subject and object must use words present in the claim text.
@@ -176,12 +197,6 @@ FAITHFULNESS:
 WEAK OBJECTS — NEVER use these as the object:
 - "it", "this", "that", "things", "something", "everything", "them", "people"
 - If the grammatical object is a pronoun, resolve it from context or use the verb's complement.
-
-ATTRIBUTION HINT:
-- When the input contains a reporting verb (say, report, argue, claim, believe, etc.),
-  PREFER extracting the inner proposition as the core triple.
-  "Scientists say air pollution is harmful" → subject "air pollution", predicate "is", object "harmful"
-  The pipeline handles attribution separately. But if you include the source, that's OK too.
 - Object should be a concept, not a full clause with its own subject-verb-object.
 
 NOISY INPUT: Claims may contain slang, typos, abbreviations, or informal English. Normalize to clean English triples. "gonna" => "will", "aint" => "is not", etc.
@@ -306,11 +321,55 @@ Claim: "The sweetness of pineapple balances the saltiness of ham and cheese."
      },
      "modifiers": [] }
 
+--- DISCOURSE CONNECTOR (connector = core predicate, sub-claims = nested S/O) ---
+
+Claim: "Renewable energy is cheaper than fossil fuels, which is why countries are transitioning."
+=> { "core": {
+       "subject": { "subject": "Renewable energy", "predicate": "is cheaper than", "object": "fossil fuels" },
+       "predicate": "which is why",
+       "object": { "subject": "Countries", "predicate": "are", "object": "transitioning" }
+     }, "modifiers": [] }
+
+Claim: "Bitcoin is valuable because it is scarce."
+=> { "core": {
+       "subject": { "subject": "Bitcoin", "predicate": "is", "object": "valuable" },
+       "predicate": "because",
+       "object": { "subject": "Bitcoin", "predicate": "is", "object": "scarce" }
+     }, "modifiers": [] }
+
+Claim: "If inflation rises, central banks will raise rates."
+=> { "core": {
+       "subject": { "subject": "Central banks", "predicate": "will raise", "object": "rates" },
+       "predicate": "if",
+       "object": { "subject": "Inflation", "predicate": "is", "object": "rising" }
+     }, "modifiers": [] }
+
+Claim: "Housing supply is limited, so prices keep rising."
+=> { "core": {
+       "subject": { "subject": "Housing supply", "predicate": "is", "object": "limited" },
+       "predicate": "so",
+       "object": { "subject": "Prices", "predicate": "keep", "object": "rising" }
+     }, "modifiers": [] }
+
+Claim: "Scientists argue that AI is dangerous."
+=> { "core": {
+       "subject": "Scientists",
+       "predicate": "argue",
+       "object": { "subject": "AI", "predicate": "is", "object": "dangerous" }
+     }, "modifiers": [] }
+
 --- NOISY INPUT ---
 
 Claim: "ai is gonna take our jobs lol"
 => { "core": { "subject": "AI", "predicate": "will take", "object": "jobs" },
      "modifiers": [] }
+
+--- COUNTER-EXAMPLES (DO NOT produce these patterns) ---
+
+BAD: { "predicate": "collect so" } → "collect so" is not a verb phrase. Use "collects".
+BAD: { "object": "a growing problem in developing nations due to climate change" } → 10 words with 2 preps, must nest.
+BAD: { "predicate": "on" } → bare preposition, find the verb.
+BAD: { "subject": "This", "predicate": "is", "object": "important" } → resolve "This" from context.
 `;
 
 export async function runGraphExtraction(model: LanguageModel, prompt: string) {

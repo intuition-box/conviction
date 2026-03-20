@@ -104,45 +104,11 @@ export type DecomposedClaim = {
   confidence?: number | null;
 };
 
-export type Conditional = {
-  kw: "if" | "unless" | "when";
-  condText: string;
-  mainText: string;
+export type CausalMarker =
+  | "because" | "since"
+  | "which is why" | "which means" | "which leads to"
+  | "leading to" | "resulting in"
+  | "therefore" | "so" | "so that" | "thus" | "hence"
+  // ", which VERB" patterns produce the verb as marker (e.g. "is", "causes", "reduces")
+  | (string & {});
 
-  compoundKw?: string;
-};
-
-export type Causal = {
-  marker: "because" | "since";
-  mainText: string;
-  reasonText: string;
-};
-
-export type ClaimNode =
-  | { kind: "proposition"; text: string; role: "MAIN" | "SUPPORTING"; group: number }
-  | { kind: "clause"; text: string }
-  | { kind: "meta"; source: string; verb: string; child: ClaimNode }
-  | { kind: "conditional"; main: ClaimNode; condition: ClaimNode; kw: string; compoundKw?: string }
-  | { kind: "causal"; main: ClaimNode; reason: ClaimNode; marker: "because" | "since" };
-
-export type ClaimTreeLeaf = {
-  leafId: string;
-  text: string;
-};
-
-export type ClaimTreePlan = {
-  tree: ClaimNode;
-  claim: string;
-  role: "MAIN" | "SUPPORTING";
-  group: number;
-  leaves: ClaimTreeLeaf[];
-  graphKeys: string[];
-};
-
-export type TreeProcessResult = {
-  ref: import("./core.js").TermRef;
-  stableKey: string | null;
-  anchorTriple: (FlatTriple & { stableKey: string }) | null;
-  graphable: boolean;
-  extraClaims?: Array<{ claim: string; triple: FlatTriple & { stableKey: string } }>;
-};

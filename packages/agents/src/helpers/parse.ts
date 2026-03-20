@@ -1,10 +1,9 @@
-import type { FlatTriple, Conditional } from "../types.js";
+import type { FlatTriple, CausalMarker } from "../types.js";
 import { trackFallback } from "./fallbackTracker.js";
 import {
   REPORTING_VERBS,
   PROBABLE_VERB_RE,
   TEMPORAL_SINCE_RE,
-  COMPOUND_CONDITIONAL_KW,
   COPULA_RE,
   MODAL_EXTRACT_RE,
   TRANSITIVE_RE,
@@ -54,68 +53,83 @@ export function parseMetaClaim(claim: string): { source: string; verb: string; p
   return null;
 }
 
-export function parseCausal(text: string): { mainText: string; reasonText: string; marker: "because" | "since" } | null {
-  const match = /\b(because|since)\b/i.exec(text);
-  if (!match) return null;
-  const marker = match[1].toLowerCase() as "because" | "since";
-  const markerIndex = match.index;
+const CONSEQUENTIAL_MULTI_RE = /,?\s*(so\s+that|which\s+is\s+why|which\s+means|which\s+leads\s+to|leading\s+to|resulting\s+in)\b/i;
+const CONSEQUENTIAL_SINGLE_RE = /\b(therefore|thus|hence)\b/i;
+const SO_RE = /\bso\b/i;
+const WHICH_VERB_COMMA_RE = /,\s*which\s+(\w+)\b/i;
+const WHICH_VERB_NO_COMMA_RE = /\bwhich\s+(\w+)\b/i;
+
+export function parseCausal(text: string): { mainText: string; reasonText: string; marker: CausalMarker } | null {
+  const multiMatch = CONSEQUENTIAL_MULTI_RE.exec(text);
+  if (multiMatch) {
+    return buildCausalResult(text, multiMatch.index, multiMatch[0].length, multiMatch[1]);
+  }
+
+  const whichResult = parseWhichRelative(text);
+  if (whichResult) return whichResult;
+
+  const singleMatch = CONSEQUENTIAL_SINGLE_RE.exec(text);
+  if (singleMatch) {
+    return buildCausalResult(text, singleMatch.index, singleMatch[0].length, singleMatch[1]);
+  }
+
+  const soMatch = SO_RE.exec(text);
+  if (soMatch) {
+    const afterSo = text.slice(soMatch.index + soMatch[0].length);
+    if (!/^\s+that\b/i.test(afterSo)) {
+      return buildCausalResult(text, soMatch.index, soMatch[0].length, "so");
+    }
+  }
+
+  const causalMatch = /\b(because|since)\b/i.exec(text);
+  if (!causalMatch) return null;
+  const marker = causalMatch[1].toLowerCase() as CausalMarker;
+  const markerIndex = causalMatch.index;
   if (marker === "since" && TEMPORAL_SINCE_RE.test(text.slice(markerIndex))) return null;
-  const before = text.slice(0, markerIndex).trim().replace(/[,;:]\s*$/, "").trim();
-  const after = text.slice(markerIndex + match[0].length).trim().replace(/\.\s*$/, "");
-  if (before.split(/\s+/).filter(Boolean).length < CAUSAL_BEFORE_MIN_WORDS) return null;
-  if (!after || after.split(/\s+/).filter(Boolean).length < 2) return null;
-  return { mainText: before, reasonText: after, marker };
+  return buildCausalResult(text, markerIndex, causalMatch[0].length, marker);
 }
 
-const COMPOUND_KW = Object.keys(COMPOUND_CONDITIONAL_KW).sort((a, b) => b.length - a.length);
-
-function parseConditionalKeyword(value: string): Conditional["kw"] | null {
-  const lower = value.toLowerCase();
-  return lower === "if" || lower === "unless" || lower === "when" ? lower : null;
-}
-
-export function parseConditional(text: string): Conditional | null {
-  const s = text.trim().replace(/\.$/, "");
-
-  for (const ckw of COMPOUND_KW) {
-
-    const leadRe = new RegExp(`^(${ckw})\\s+(.+?),\\s+(.+)$`, "i");
-    const leadM = s.match(leadRe);
-    if (leadM) {
-      const kw = COMPOUND_CONDITIONAL_KW[ckw];
-      return { kw, condText: leadM[2].trim(), mainText: leadM[3].trim(), compoundKw: ckw };
-    }
-
-    const trailRe = new RegExp(`^(.+?)\\s+(${ckw})\\s+(.+)$`, "i");
-    const trailM = s.match(trailRe);
-    if (trailM) {
-      const kw = COMPOUND_CONDITIONAL_KW[ckw];
-      return { kw, condText: trailM[3].trim(), mainText: trailM[1].trim(), compoundKw: ckw };
-    }
+function parseWhichRelative(text: string): { mainText: string; reasonText: string; marker: CausalMarker } | null {
+  const commaMatch = WHICH_VERB_COMMA_RE.exec(text);
+  if (commaMatch) {
+    const verb = commaMatch[1].toLowerCase();
+    const marker = `which ${verb}` as CausalMarker;
+    const fullMatchEnd = commaMatch.index + commaMatch[0].length;
+    const before = text.slice(0, commaMatch.index).trim();
+    const after = text.slice(fullMatchEnd).trim().replace(/\.\s*$/, "");
+    if (before.split(/\s+/).filter(Boolean).length < CAUSAL_BEFORE_MIN_WORDS) return null;
+    if (!after || after.split(/\s+/).filter(Boolean).length < 2) return null;
+    return { mainText: before, reasonText: after, marker };
   }
 
-  let m = s.match(/^(If|Unless|When)\s+(.+?),\s+(.+)$/i);
-  if (m) {
-    const kw = parseConditionalKeyword(m[1]);
-    if (!kw) return null;
-    return { kw, condText: m[2].trim(), mainText: m[3].trim() };
-  }
-
-  m = s.match(/^(If|Unless|When)\s+(.+?)\s+then\s+(.+)$/i);
-  if (m) {
-    const kw = parseConditionalKeyword(m[1]);
-    if (!kw) return null;
-    return { kw, condText: m[2].trim(), mainText: m[3].trim() };
-  }
-
-  m = s.match(/^(.+?)\s+(if|unless|when)\s+(.+)$/i);
-  if (m) {
-    const kw = parseConditionalKeyword(m[2]);
-    if (!kw) return null;
-    return { kw, condText: m[3].trim(), mainText: m[1].trim() };
+  const noCommaMatch = WHICH_VERB_NO_COMMA_RE.exec(text);
+  if (noCommaMatch) {
+    const verb = noCommaMatch[1].toLowerCase();
+    const marker = `which ${verb}` as CausalMarker;
+    const before = text.slice(0, noCommaMatch.index).trim();
+    if (!PROBABLE_VERB_RE.test(before)) return null;
+    const fullMatchEnd = noCommaMatch.index + noCommaMatch[0].length;
+    const after = text.slice(fullMatchEnd).trim().replace(/\.\s*$/, "");
+    if (before.split(/\s+/).filter(Boolean).length < CAUSAL_BEFORE_MIN_WORDS) return null;
+    if (!after || after.split(/\s+/).filter(Boolean).length < 2) return null;
+    return { mainText: before, reasonText: after, marker };
   }
 
   return null;
+}
+
+function buildCausalResult(
+  text: string,
+  markerIndex: number,
+  markerLength: number,
+  rawMarker: string,
+): { mainText: string; reasonText: string; marker: CausalMarker } | null {
+  const marker = rawMarker.toLowerCase().replace(/\s+/g, " ").trim() as CausalMarker;
+  const before = text.slice(0, markerIndex).trim().replace(/[,;:]\s*$/, "").trim();
+  const after = text.slice(markerIndex + markerLength).trim().replace(/\.\s*$/, "");
+  if (before.split(/\s+/).filter(Boolean).length < CAUSAL_BEFORE_MIN_WORDS) return null;
+  if (!after || after.split(/\s+/).filter(Boolean).length < 2) return null;
+  return { mainText: before, reasonText: after, marker };
 }
 
 export function tryExtractSubProposition(value: string): FlatTriple | null {

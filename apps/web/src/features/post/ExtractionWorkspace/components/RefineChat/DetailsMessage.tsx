@@ -850,35 +850,73 @@ export function DetailsMessage({
       }
     }
 
-    return draftPosts.map((draft) => {
-      const edgeBelongsToDraft = (e: NestedProposalDraft, visited = new Set<string>()): boolean => {
-        if (visited.has(e.stableKey)) return false;
-        visited.add(e.stableKey);
-        for (const ref of [e.subject, e.object]) {
-          if (ref.type !== "triple") continue;
-          // Check ALL proposals with matching stableKey (causal splits create
-          // duplicate main proposals with different groupKeys / IDs)
-          if (proposals.some((pr) => pr.stableKey === ref.tripleKey && draft.proposalIds.includes(pr.id))) return true;
-          const ne = nestedEdges.find((n) => n.stableKey === ref.tripleKey);
-          if (ne && edgeBelongsToDraft(ne, visited)) return true;
-        }
-        return false;
-      };
+    const edgeToDraftId = new Map<string, string>();
+    {
+      const pidToDid = new Map<string, string>();
+      for (const d of draftPosts) for (const pid of d.proposalIds) pidToDid.set(pid, d.id);
 
-      const draftNestedEdges = nestedEdges.filter((e) => {
-        if (nestedSubTripleKeys.has(e.stableKey)) return false;
-        return edgeBelongsToDraft(e);
-      });
-      const mainProposal = proposals.find(
-        (p) => p.id === draft.mainProposalId && p.status === "approved",
-      );
+      const skToPid = new Map<string, string>();
+      for (const p of proposals) if (p.stableKey) skToPid.set(p.stableKey, p.id);
+
+      const dtToDid = new Map<string, string>();
+      for (const dt of derivedTriples) {
+        const owner = draftPosts.find((d) =>
+          d.proposalIds
+            .map((pid) => proposals.find((pr) => pr.id === pid))
+            .some((p) => p?.groupKey === dt.ownerGroupKey),
+        );
+        if (owner) dtToDid.set(dt.stableKey, owner.id);
+      }
+
+      const outerToDid = new Map<string, string>();
+      for (const p of proposals) {
+        if (p.outermostMainKey) {
+          const did = pidToDid.get(p.id);
+          if (did) outerToDid.set(p.outermostMainKey, did);
+        }
+      }
+
+      let remaining = nestedEdges.filter((e) => !nestedSubTripleKeys.has(e.stableKey));
+      for (let round = 0; round < 10 && remaining.length > 0; round++) {
+        const prevCount = remaining.length;
+        const deferred: NestedProposalDraft[] = [];
+        for (const edge of remaining) {
+          let did: string | undefined;
+          if (edge.subject.type === "triple") {
+            const pid = skToPid.get(edge.subject.tripleKey);
+            if (pid) did = pidToDid.get(pid);
+            if (!did) did = edgeToDraftId.get(edge.subject.tripleKey);
+            if (!did) did = dtToDid.get(edge.subject.tripleKey);
+          }
+          if (!did && edge.object.type === "triple") {
+            const pid = skToPid.get(edge.object.tripleKey);
+            if (pid) did = pidToDid.get(pid);
+            if (!did) did = edgeToDraftId.get(edge.object.tripleKey);
+            if (!did) did = dtToDid.get(edge.object.tripleKey);
+          }
+          if (!did) did = outerToDid.get(edge.stableKey);
+          if (!did && round < 9) { deferred.push(edge); continue; }
+          if (did) edgeToDraftId.set(edge.stableKey, did);
+        }
+        remaining = deferred;
+        if (deferred.length === prevCount) break;
+      }
+    }
+
+    return draftPosts.map((draft) => {
       const draftGroupKeys = new Set(
         draft.proposalIds
           .map((pid) => proposals.find((pr) => pr.id === pid))
           .filter(Boolean)
           .map((p) => p!.groupKey),
       );
-      // Check if the edge's object triple belongs to this draft (proposal OR derived triple)
+
+      const draftNestedEdges = nestedEdges.filter((e) =>
+        !nestedSubTripleKeys.has(e.stableKey) && edgeToDraftId.get(e.stableKey) === draft.id,
+      );
+      const mainProposal = proposals.find(
+        (p) => p.id === draft.mainProposalId && p.status === "approved",
+      );
       const objectInDraft = (e: NestedProposalDraft) => {
         if (e.object.type !== "triple") return false;
         const tripleKey = e.object.tripleKey;

@@ -9,7 +9,7 @@ import {
   REPLY_PARENT_MATCH_THRESHOLD,
   COMPOUND_CONDITIONAL_KW,
 } from "./rules/extractionRules.js";
-import type { DecomposedClaim, FlatTriple, ClaimNode, ClaimTreePlan } from "../types.js";
+import type { DecomposedClaim, FlatTriple } from "../types.js";
 import type { ClaimPlan, GraphResult } from "./claimPlanner.js";
 
 export function fixCompoundPredicate(core: FlatTriple): FlatTriple {
@@ -152,31 +152,18 @@ export function deduplicateGraphPlans(
   graphMap: Map<string, GraphResult | null>,
 ): ClaimPlan[] {
   const result: ClaimPlan[] = [];
-  const seenCores: Array<{ core: FlatTriple; reasonCore?: FlatTriple; index: number; kind: ClaimPlan["kind"] }> = [];
+  const seenCores: Array<{ core: FlatTriple; index: number }> = [];
 
   for (const plan of plans) {
     const graph = graphMap.get(plan.graphKeys[0]);
     if (!graph) { result.push(plan); continue; }
     const core = graph.core;
 
-    const reasonCore = plan.kind === "causal" ? graphMap.get(plan.graphKeys[1])?.core : undefined;
-
-    const existing = seenCores.find((s) => {
-      const coreMatch = areTriplesDuplicate(s.core, core);
-      if (!coreMatch) return false;
-      if (s.reasonCore && reasonCore) {
-        return areTriplesDuplicate(s.reasonCore, reasonCore);
-      }
-      if (s.reasonCore || reasonCore) return false;
-      return true;
-    });
+    const existing = seenCores.find((s) => areTriplesDuplicate(s.core, core));
 
     if (!existing) {
-      seenCores.push({ core, reasonCore, index: result.length, kind: plan.kind });
+      seenCores.push({ core, index: result.length });
       result.push(plan);
-    } else if (plan.kind === "meta" && existing.kind !== "meta") {
-      result[existing.index] = plan;
-      existing.kind = "meta";
     }
   }
   return result;
@@ -259,65 +246,3 @@ export function enforceRoles(
   enforceOneMainPerGroup(claims, referenceText);
 }
 
-function treeStructureKey(node: ClaimNode): string {
-  switch (node.kind) {
-    case "proposition": return "P";
-    case "clause": return "C";
-    case "meta": return `meta(${treeStructureKey(node.child)})`;
-    case "conditional": return `cond(${treeStructureKey(node.main)},${treeStructureKey(node.condition)})`;
-    case "causal": return `causal(${treeStructureKey(node.main)},${treeStructureKey(node.reason)})`;
-  }
-}
-
-function collectLeafCores(
-  plan: ClaimTreePlan,
-  graphMap: Map<string, GraphResult | null>,
-): FlatTriple[] {
-  return plan.leaves
-    .map((leaf) => graphMap.get(leaf.leafId)?.core)
-    .filter((c): c is FlatTriple => !!c);
-}
-
-export function deduplicateGraphTreePlans(
-  plans: ClaimTreePlan[],
-  graphMap: Map<string, GraphResult | null>,
-): ClaimTreePlan[] {
-  const result: ClaimTreePlan[] = [];
-  const seen: Array<{ structureKey: string; cores: FlatTriple[]; index: number; hasMeta: boolean }> = [];
-
-  for (const plan of plans) {
-    const structureKey = treeStructureKey(plan.tree);
-    const cores = collectLeafCores(plan, graphMap);
-    const hasMeta = structureKey.startsWith("meta(");
-
-    const existing = seen.find((s) => {
-      if (s.structureKey !== structureKey && !areSameLeafCoresWithDiffStructure(s, { structureKey, cores })) {
-        return false;
-      }
-      if (s.cores.length !== cores.length) return false;
-      return s.cores.every((sc, i) => areTriplesDuplicate(sc, cores[i]));
-    });
-
-    if (!existing) {
-      seen.push({ structureKey, cores, index: result.length, hasMeta });
-      result.push(plan);
-    } else if (hasMeta && !existing.hasMeta) {
-      // Prefer meta-wrapped version
-      result[existing.index] = plan;
-      existing.hasMeta = true;
-      existing.structureKey = structureKey;
-    }
-  }
-
-  return result;
-}
-
-function areSameLeafCoresWithDiffStructure(
-  a: { structureKey: string; cores: FlatTriple[] },
-  b: { structureKey: string; cores: FlatTriple[] },
-): boolean {
-  // Two plans with different structure but identical leaf cores → the more structured one wins
-  // This handles meta(X) vs standard(X) — both have the same single leaf core
-  if (a.cores.length !== b.cores.length) return false;
-  return a.cores.every((ac, i) => areTriplesDuplicate(ac, b.cores[i]));
-}

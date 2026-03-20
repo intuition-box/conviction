@@ -1,7 +1,4 @@
 
-
-export const CAUSAL_MARKERS_RE = /\b(because|since)\b/i;
-
 export const TEMPORAL_SINCE_RE =
   /^since\s+(\d{4}|\d{1,2}\b|january|february|march|april|may|june|july|august|september|october|november|december|last\s|the\s+(beginning|start|end|dawn)|then\b|early\b|mid\b|late\b)/i;
 
@@ -11,17 +8,36 @@ export const COMPOUND_NOUN_BLOCKLIST_RE = /\b(supply and demand|research and dev
 
 export const AUXILIARIES_RE = /^(does|do|is|are|was|were|has|have|had|can|will|shall|should|would|could|may|might)\b/i;
 
-export const CAUSAL_PREDS = new Set(["because", "therefore", "so", "since"]);
+export const CAUSAL_PREDS = new Set([
+  // Backward causal (consequence ← cause)
+  "because", "since",
+  // Forward causal (cause → consequence)
+  "so that", "leading to", "resulting in",
+  "therefore", "so", "thus", "hence",
+  // "which ..." patterns are handled dynamically by isCausalPred()
+]);
 
-export const CAUSAL_SENTENCE_RE = /\b(because|since|therefore|so)\b/i;
+/** Check if a predicate is causal — includes any "which <verb>" pattern dynamically */
+export function isCausalPred(pred: string): boolean {
+  return CAUSAL_PREDS.has(pred) || /^which\s+\w+/i.test(pred);
+}
 
-export const RELATION_MARKERS_RE = /\b(but|however|although|though|yet|because|therefore|hence|thus|so|if|unless|when)\b|\b(could|may|might|will)\s+lead\s+to\b/i;
+export const CAUSAL_SENTENCE_RE = /\b(because|since|therefore|so|thus|hence)\b|which\s+is\s+why|which\s+means|which\s+leads\s+to|leading\s+to|resulting\s+in|so\s+that|,\s*which\s+\w+/i;
+
+export const RELATION_MARKERS_RE = /\b(but|however|although|though|yet|because|therefore|hence|thus|so|if|unless|when)\b|\b(could|may|might|will)\s+lead\s+to\b|which\s+is\s+why|which\s+means|which\s+leads\s+to|leading\s+to|resulting\s+in|so\s+that|,\s*which\s+\w+/i;
 
 export const ALLOWED_RELATION_PREDICATES = new Set([
-  "but", "however", "although", "because", "therefore", "so",
+  "but", "however", "although", "because", "therefore", "so", "so that",
   "if", "unless", "when",
   "could lead to", "may lead to", "might lead to", "will lead to",
+  "leading to", "resulting in", "thus", "hence", "since",
+  // "which ..." patterns are handled dynamically by isAllowedRelationPredicate()
 ]);
+
+/** Check if a predicate is allowed — includes any "which <verb>" pattern dynamically */
+export function isAllowedRelationPredicate(pred: string): boolean {
+  return ALLOWED_RELATION_PREDICATES.has(pred) || /^which\s+\w+/i.test(pred);
+}
 
 export const REPORTING_VERBS = new Set([
   "say", "said", "says",
@@ -84,11 +100,7 @@ export const CONDITION_RE = /\b(if|unless|when|only\s+when|only\s+if|as long as|
 
 export const PREP_ONLY_RE = /^(in|of|for|to|by|with|at|on|from|about|through|under|over|between)$/i;
 
-export const STRONG_ARGUMENT_MARKERS_RE = /\b(because|since|therefore|if|unless|when|should|must|ought|however|but|although|yet|thus|hence|so\s+that|despite|whereas|even\s+though|nevertheless|consequently|in\s+order\s+to)\b/i;
-
-export const CAUSAL_COVERAGE_THRESHOLD = 0.8;
-
-export const SHORT_REASON_MAX_WORDS = 4;
+export const STRONG_ARGUMENT_MARKERS_RE = /\b(because|since|therefore|if|unless|when|should|must|ought|however|but|although|yet|thus|hence|so\s+that|despite|whereas|even\s+though|nevertheless|consequently|in\s+order\s+to)\b|which\s+is\s+why|which\s+means|which\s+leads\s+to|resulting\s+in/i;
 
 export const CAUSAL_BEFORE_MIN_WORDS = 2;
 
