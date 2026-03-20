@@ -101,7 +101,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     extractionJob,
     parentPostId: extractionJob?.parentPostId ?? null,
     parentMainTripleTermId: flow.parentMainTripleTermId ?? null,
-    themeAtomTermId: flow.themeAtomTermId ?? null,
+    themes: flow.themes,
     parentClaim: flow.parentClaim,
     resolvedAtomMap: flow.resolvedAtomMap,
     nestedTripleStatuses: flow.nestedTripleStatuses,
@@ -212,7 +212,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     proposalActions,
     draftPosts,
     sourceText: extractedInputText,
-    themeTitle: flow.themeTitle,
+    themeTitle: flow.themes[0]?.name,
     parentClaim: flow.parentClaim,
     reasoningSummary,
     onBodyChange: draftActions.onBodyChange,
@@ -266,14 +266,14 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     }));
   }, [stanceRequired, parentTripleLabel, flow.parentClaim, model.publishPlan.metadata.stanceEntries]);
 
-  const tagTriples = useMemo<TagInfo[]>(() => {
-    if (!flow.themeTitle) return [];
-    return model.publishPlan.metadata.tagEntries.map((entry) => ({
+  const tagTriples = useMemo<TagInfo[]>(
+    () => model.publishPlan.metadata.tagEntries.map((entry) => ({
       draftIndex: entry.draftIndex,
       mainTarget: entry.mainTarget,
-      themeLabel: flow.themeTitle!,
-    }));
-  }, [flow.themeTitle, model.publishPlan.metadata.tagEntries]);
+      themeLabel: entry.themeName,
+    })),
+    [model.publishPlan.metadata.tagEntries],
+  );
 
   const highlightedText = useHighlightedText(extractedInputText, hoveredTerms);
   if (model.viewState === "publishing") {

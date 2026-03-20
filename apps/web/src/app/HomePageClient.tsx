@@ -116,7 +116,7 @@ function InlineComposerBlock({
 }) {
   const [selectedThemes, setSelectedThemes] = useState(target.themes);
   const composerFlow = useComposerFlow({
-    themeSlug: selectedThemes[0]?.slug ?? target.themeSlug,
+    themes: selectedThemes,
     parentPostId: target.postId,
     parentMainTripleTermId: target.mainTripleTermId,
     onPublishSuccess,
@@ -204,7 +204,7 @@ export function HomePageClient({ trending, feed, themes, loadMoreReplies }: Home
 
   // Root composer flow (always open — inline at top of feed)
   const rootComposerFlow = useComposerFlow({
-    themeSlug: selectedThemes[0]?.slug ?? "",
+    themes: selectedThemes,
     parentPostId: null,
     onPublishSuccess: (postId) => {
       setSelectedThemes([]);

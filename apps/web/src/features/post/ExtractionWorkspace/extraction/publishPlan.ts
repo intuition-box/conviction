@@ -32,7 +32,8 @@ export type PublishPlanTagEntry = {
   draftIndex: number;
   mainTarget: MainTarget;
   mainProposalId: string | null;
-  themeAtomTermId: string;
+  themeSlug: string;
+  themeName: string;
 };
 
 export type PublishPlanInput = {
@@ -42,7 +43,7 @@ export type PublishPlanInput = {
   mainRefByDraft: Map<string, MainRef | null>;
   parentPostId?: string | null;
   parentMainTripleTermId?: string | null;
-  themeAtomTermId?: string | null;
+  themes: { slug: string; name: string }[];
 };
 
 export type PublishPlan = {
@@ -147,7 +148,7 @@ export function buildPublishPlan(input: PublishPlanInput): PublishPlan {
     mainRefByDraft,
     parentPostId,
     parentMainTripleTermId,
-    themeAtomTermId,
+    themes,
   } = input;
 
   const { publishableProposals, syntheticProposals, invalidProposals } = computePublishIntent(
@@ -193,7 +194,6 @@ export function buildPublishPlan(input: PublishPlanInput): PublishPlan {
   const tagEntries: PublishPlanTagEntry[] = [];
 
   const isReply = Boolean(parentPostId);
-  const isRoot = !isReply;
 
   for (const [draftIndex, draft] of draftPosts.entries()) {
     const mainTarget = toMainTarget(mainRefByDraft.get(draft.id) ?? null);
@@ -225,13 +225,14 @@ export function buildPublishPlan(input: PublishPlanInput): PublishPlan {
       }
     }
 
-    if (isRoot && themeAtomTermId) {
+    for (const theme of themes) {
       tagEntries.push({
         draftId: draft.id,
         draftIndex,
         mainTarget,
         mainProposalId: draft.mainProposalId,
-        themeAtomTermId,
+        themeSlug: theme.slug,
+        themeName: theme.name,
       });
     }
   }

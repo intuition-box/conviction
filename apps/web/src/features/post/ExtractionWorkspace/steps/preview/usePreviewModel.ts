@@ -53,7 +53,7 @@ export type PreviewModelInputs = {
   extractionJob: { status: string } | null;
   parentPostId?: string | null;
   parentMainTripleTermId?: string | null;
-  themeAtomTermId?: string | null;
+  themes: { slug: string; name: string }[];
   parentClaim?: string | null;
   resolvedAtomMap?: Map<string, string>;
   onConnect: () => void;
@@ -130,7 +130,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     extractionJob,
     parentPostId,
     parentMainTripleTermId,
-    themeAtomTermId,
+    themes,
     parentClaim,
     resolvedAtomMap,
     onConnect,
@@ -161,7 +161,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
         mainRefByDraft,
         parentPostId,
         parentMainTripleTermId,
-        themeAtomTermId,
+        themes,
       }),
     [
       approvedProposals,
@@ -170,7 +170,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
       mainRefByDraft,
       parentPostId,
       parentMainTripleTermId,
-      themeAtomTermId,
+      themes,
     ],
   );
   const { publishableProposals, invalidProposals } = publishPlan;

@@ -115,11 +115,9 @@ export function PostPageClient({ post, themes: initialThemes, breadcrumbs, repli
   }, [createTheme, addThemeToPost, post.id, parentMainTripleTermId, addToast]);
 
   const composerFlow = useComposerFlow({
-    themeSlug: replyThemes[0]?.slug ?? themes[0]?.slug ?? "",
-    themeSlugs: replyThemes.map((t) => t.slug),
+    themes: replyThemes,
     parentPostId: post.id,
     parentMainTripleTermId,
-    themeTitle: replyThemes[0]?.name ?? themes[0]?.name ?? "",
     parentClaim: post.body,
     onPublishSuccess: (postId) => {
       addToast("Reply created", "success", { label: "See", href: `/posts/${postId}` }, 6000);

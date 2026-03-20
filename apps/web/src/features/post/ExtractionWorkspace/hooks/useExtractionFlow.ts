@@ -42,7 +42,9 @@ import { useTripleResolution } from "./useTripleResolution";
 
 const normalizeText = normalizeLabelForChain;
 
-export function useExtractionFlow({ themeSlug, themeSlugs, parentPostId, parentMainTripleTermId, themeAtomTermId, onPublishSuccess, themeTitle, parentClaim }: UseExtractionFlowParams) {
+export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId, onPublishSuccess, parentClaim }: UseExtractionFlowParams) {
+  const themeSlug = themes[0]?.slug ?? "";
+  const themeSlugs = themes.map((t) => t.slug);
   const router = useRouter();
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
@@ -375,8 +377,8 @@ export function useExtractionFlow({ themeSlug, themeSlugs, parentPostId, parentM
     onPublishSuccess,
     visibleNestedProposals,
     proposals,
-    themeAtomTermId: themeAtomTermId ?? null,
-    themeSlugs: themeSlugs ?? [themeSlug],
+    themes,
+    themeSlugs,
     mainRefByDraft,
     derivedTriples,
     nestedRefLabels,
@@ -454,9 +456,7 @@ export function useExtractionFlow({ themeSlug, themeSlugs, parentPostId, parentM
     proposalActions,
     draftActions,
     publishOnchain: publish.publishOnchain,
-    themeTitle,
-    themeAtomTermId: themeAtomTermId ?? null,
-    themeSlugs: themeSlugs ?? [themeSlug],
+    themes,
     parentClaim,
     parentMainTripleTermId: parentMainTripleTermId ?? null,
     updateNestedPredicate,

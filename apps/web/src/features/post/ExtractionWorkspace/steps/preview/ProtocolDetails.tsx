@@ -288,7 +288,7 @@ export function ProtocolDetails({
                       </li>
                     ))}
                     {tagTriples?.map((tt) => (
-                      <li key={`tag-${tt.draftIndex}`}>
+                      <li key={`tag-${tt.draftIndex}-${tt.themeLabel}`}>
                         <TripleInline
                           subject={(
                             <StructuredTripleInline

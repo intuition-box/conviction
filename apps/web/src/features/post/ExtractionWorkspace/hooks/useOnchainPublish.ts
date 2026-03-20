@@ -78,7 +78,7 @@ type UseOnchainPublishParams = {
   onPublishSuccess?: (postId: string) => void;
   visibleNestedProposals: NestedProposalDraft[];
   proposals: ProposalDraft[];
-  themeAtomTermId: string | null;
+  themes: { slug: string; name: string }[];
   themeSlugs: string[];
   mainRefByDraft: Map<string, MainRef | null>;
   derivedTriples: DerivedTripleDraft[];
@@ -118,7 +118,7 @@ export function useOnchainPublish({
   onPublishSuccess,
   visibleNestedProposals,
   proposals,
-  themeAtomTermId,
+  themes,
   themeSlugs,
   mainRefByDraft,
   derivedTriples,
@@ -198,7 +198,7 @@ export function useOnchainPublish({
         mainRefByDraft,
         parentPostId: extractionJob.parentPostId ?? null,
         parentMainTripleTermId: extractionJob.parentMainTripleTermId ?? null,
-        themeAtomTermId: extractionJob.parentPostId ? null : themeAtomTermId,
+        themes,
       });
 
       const firstPlanError = publishPlan.errors[0];
@@ -336,7 +336,7 @@ export function useOnchainPublish({
       type ResolvedTheme = { slug: string; name: string; atomTermId: string | null };
       let resolvedThemes: ResolvedTheme[] = [];
       const themeAtomLabelsForCreation: string[] = [];
-      if (themeSlugs.length > 0 && !extractionJob.parentPostId) {
+      if (themeSlugs.length > 0) {
         const themeRes = await fetch("/api/themes/resolve", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -457,8 +457,9 @@ export function useOnchainPublish({
 
       let tagTxHash: string | null = null;
       const seenTagTriples = new Set<string>();
+      const resolvedThemeMap = new Map(resolvedThemes.map((t) => [t.slug, t]));
 
-      // Original tag entries from publishPlan (single theme)
+      // Resolve tag entries from publishPlan — match each entry's themeSlug to resolved atomTermId
       for (const entry of publishPlan.metadata.tagEntries) {
         const mainRef = mainRefByDraft.get(entry.draftId) ?? null;
         const mainTripleTermId = resolveMainTripleTermId(mainRef, resolvedByIndex, resolvedNestedTriples);
@@ -468,34 +469,16 @@ export function useOnchainPublish({
             `Tag metadata unresolved for draft "${entry.draftId}" (main triple not resolved).`,
           );
         }
-        const dedupeKey = `${mainTripleTermId}-${entry.themeAtomTermId}`;
+        const resolved = resolvedThemeMap.get(entry.themeSlug);
+        if (!resolved?.atomTermId) continue;
+        const dedupeKey = `${mainTripleTermId}-${resolved.atomTermId}`;
         if (seenTagTriples.has(dedupeKey)) continue;
         seenTagTriples.add(dedupeKey);
         resolvedPlan.tagEntries.push({
           mainTripleTermId,
           mainProposalId: entry.mainProposalId ?? entry.draftId,
-          themeAtomTermId: entry.themeAtomTermId,
+          themeAtomTermId: resolved.atomTermId,
         });
-      }
-
-      // Multi-theme: add tag entries for additional resolved themes
-      if (resolvedThemes.length > 0 && !extractionJob.parentPostId) {
-        for (const draft of draftPosts) {
-          const mainRef = mainRefByDraft.get(draft.id) ?? null;
-          const mainTripleTermId = resolveMainTripleTermId(mainRef, resolvedByIndex, resolvedNestedTriples);
-          if (!mainTripleTermId) continue;
-          for (const theme of resolvedThemes) {
-            if (!theme.atomTermId) continue;
-            const dedupeKey = `${mainTripleTermId}-${theme.atomTermId}`;
-            if (seenTagTriples.has(dedupeKey)) continue;
-            seenTagTriples.add(dedupeKey);
-            resolvedPlan.tagEntries.push({
-              mainTripleTermId,
-              mainProposalId: draft.mainProposalId ?? draft.id,
-              themeAtomTermId: theme.atomTermId,
-            });
-          }
-        }
       }
 
       if (resolvedPlan.tagEntries.length > 0) {

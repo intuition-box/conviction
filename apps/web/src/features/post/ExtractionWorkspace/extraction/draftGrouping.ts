@@ -143,6 +143,7 @@ export function groupResolvedByDraft(
     draftPosts,
     nestedProposals,
     mainRefByDraft: mainRefByDraft ?? new Map(),
+    themes: [],
   });
   const { syntheticProposals, invalidProposals } = plan;
   const excludedIds = new Set([

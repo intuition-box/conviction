@@ -213,15 +213,10 @@ export type ExtractionContext = {
 export type HexString = `0x${string}`;
 
 export type UseExtractionFlowParams = {
-  themeSlug: string;
-  themeSlugs?: string[];
+  themes: { slug: string; name: string }[];
   parentPostId: string | null;
   parentMainTripleTermId?: string | null;
-  themeAtomTermId?: string | null;
   onPublishSuccess?: (postId: string) => void;
-
-  themeTitle?: string;
-
   parentClaim?: string;
 };
 

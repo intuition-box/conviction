@@ -6,30 +6,23 @@ import type { Stance } from "../extraction";
 import { useExtractionFlow } from "./useExtractionFlow";
 
 export type UseComposerFlowParams = {
-  themeSlug: string;
-  themeSlugs?: string[];
+  themes: { slug: string; name: string }[];
   parentPostId: string | null;
   parentMainTripleTermId?: string | null;
-  themeAtomTermId?: string | null;
   onPublishSuccess: (postId: string) => void;
   autoOpen?: boolean;
   onClose?: () => void;
-  /** Theme display name — forwarded to refine chat for context */
-  themeTitle?: string;
   /** Parent claim body text — forwarded to refine chat for context */
   parentClaim?: string;
 };
 
 export function useComposerFlow({
-  themeSlug,
-  themeSlugs,
+  themes,
   parentPostId,
   parentMainTripleTermId,
-  themeAtomTermId,
   onPublishSuccess,
   autoOpen,
   onClose,
-  themeTitle,
   parentClaim,
 }: UseComposerFlowParams) {
   const [composerOpen, setComposerOpen] = useState(!!autoOpen);
@@ -47,13 +40,10 @@ export function useComposerFlow({
   );
 
   const flow = useExtractionFlow({
-    themeSlug,
-    themeSlugs,
+    themes,
     parentPostId,
     parentMainTripleTermId,
-    themeAtomTermId,
     onPublishSuccess: handlePublishSuccess,
-    themeTitle,
     parentClaim,
   });
 
