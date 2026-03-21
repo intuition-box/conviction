@@ -168,6 +168,8 @@ DISCOURSE CONNECTORS (because, which is why, therefore, if, unless, so, etc.):
 - "X therefore Y" → S=[X as triple], P="therefore", O=[Y as triple]
 - "X, so Y" (not "so that") → S=[X as triple], P="so", O=[Y as triple]
 - "X says/argues/claims that Y" → S="X", P="says/argues/claims", O=[Y as triple]
+- IMPORTANT: S and O are FULL propositions (subject + verb + object), not just the grammatical subject.
+  "Workers who depend on gig platforms deserve protections because X" → S=[Workers... | deserve | protections], NOT S=[Workers...].
 - Each nested S and O must have exactly 3 slots (subject, predicate, object).
 - Apply all other rules (nesting, denominalization, pronouns) inside each nested triple.
 
@@ -330,11 +332,15 @@ Claim: "Renewable energy is cheaper than fossil fuels, which is why countries ar
        "object": { "subject": "Countries", "predicate": "are", "object": "transitioning" }
      }, "modifiers": [] }
 
-Claim: "Bitcoin is valuable because it is scarce."
+Claim: "Workers who depend on gig economy platforms for their primary income deserve stronger labor protections because current regulations were designed for traditional employment."
 => { "core": {
-       "subject": { "subject": "Bitcoin", "predicate": "is", "object": "valuable" },
+       "subject": {
+         "subject": { "subject": { "subject": "Workers", "predicate": "who depend on", "object": "gig economy platforms" }, "predicate": "for", "object": "their primary income" },
+         "predicate": "deserve",
+         "object": "stronger labor protections"
+       },
        "predicate": "because",
-       "object": { "subject": "Bitcoin", "predicate": "is", "object": "scarce" }
+       "object": { "subject": "Current regulations", "predicate": "were designed for", "object": "traditional employment" }
      }, "modifiers": [] }
 
 Claim: "If inflation rises, central banks will raise rates."
