@@ -1,4 +1,5 @@
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -109,4 +110,119 @@
 
 .stanceWarningIcon {
   flex-shrink: 0;
+}
+
+.stanceSwitch {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 1px var(--space-1);
+  border: 1px solid color-mix(in srgb, var(--color-amber-400) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-amber-400);
+  font-size: var(--font-size-2xs, 10px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.stanceSwitch:hover {
+  background: color-mix(in srgb, var(--color-amber-400) 12%, transparent);
+}
+
+
+.duplicateMore {
+  color: var(--text-tertiary);
+}
+
+.duplicateDot {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: none;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-blue);
+  animation: duplicatePulse 2s ease-in-out infinite;
+  cursor: pointer;
+  z-index: 1;
+}
+
+@keyframes duplicatePulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-blue) 40%, transparent);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duplicateDot {
+    animation: none;
+  }
+}
+
+.duplicateTooltip {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  max-width: 260px;
+  z-index: calc(var(--z-modal) + 10);
+}
+
+
+.blockedCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+}
+
+.blockedTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.blockedBody {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.blockedAuthor {
+  color: var(--text-tertiary);
+  font-style: normal;
+}
+
+.blockedCta {
+  display: inline-block;
+  margin-top: var(--space-1);
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--accent-blue);
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.blockedCta:hover {
+  opacity: 0.85;
 }

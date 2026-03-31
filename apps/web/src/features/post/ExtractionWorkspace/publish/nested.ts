@@ -23,16 +23,53 @@ export async function resolveNestedTriples(params: {
   atomMap: Map<string, string>;
   ctx: PublishContext;
   mainNestedIds?: Set<string>;
+  preResolvedNested?: Map<string, string>;
 }): Promise<{ resolvedNested: ResolvedNestedTriple[]; nestedTxHash: string | null }> {
-  const { nestedProposals, resolvedTripleMap, atomMap, ctx, mainNestedIds } = params;
+  const { nestedProposals, resolvedTripleMap, atomMap, ctx, mainNestedIds, preResolvedNested } = params;
 
   if (nestedProposals.length === 0) {
     return { resolvedNested: [], nestedTxHash: null };
   }
 
+  // Seed resolvedTripleMap with pre-resolved nested triples from preview
+  if (preResolvedNested) {
+    for (const [stableKey, tripleTermId] of preResolvedNested) {
+      if (!resolvedTripleMap.has(stableKey)) {
+        resolvedTripleMap.set(stableKey, tripleTermId);
+      }
+    }
+  }
+
+  // Filter out edges already resolved by preview
+  const preResolvedEdges: NestedProposalDraft[] = [];
+  const unresolvedEdges: NestedProposalDraft[] = [];
+  for (const edge of nestedProposals) {
+    if (resolvedTripleMap.has(edge.stableKey)) {
+      preResolvedEdges.push(edge);
+    } else {
+      unresolvedEdges.push(edge);
+    }
+  }
+
   const MAX_ROUNDS = 10;
-  let remaining = [...nestedProposals];
+  let remaining = [...unresolvedEdges];
   const all: ResolvedNestedTriple[] = [];
+  // Add pre-resolved edges as existing results
+  for (const edge of preResolvedEdges) {
+    const subjectId = resolveNestedRef(edge.subject, atomMap, resolvedTripleMap);
+    const predicateId = atomMap.get(atomKey(edge.predicate));
+    const objectId = resolveNestedRef(edge.object, atomMap, resolvedTripleMap);
+    if (subjectId && predicateId && objectId) {
+      all.push({
+        nestedProposalId: edge.id,
+        subjectTermId: subjectId,
+        predicateTermId: predicateId,
+        objectTermId: objectId,
+        tripleTermId: resolvedTripleMap.get(edge.stableKey)!,
+        isExisting: true,
+      });
+    }
+  }
   let lastTxHash: string | null = null;
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {

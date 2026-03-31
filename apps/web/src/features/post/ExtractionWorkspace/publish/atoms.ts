@@ -23,9 +23,8 @@ import type { PublishContext } from "./types";
 import { PublishPipelineError, isNonRetryableError } from "./errors";
 import { sdkWriteConfig, sdkReadConfig, normalizeText, atomKey, normalizeAtomLabel } from "./config";
 
-/* ── Telemetry types ── */
 
-export type AtomDecisionPath = "locked" | "strict_equivalent" | "graphql_reuse" | "create_new";
+export type AtomDecisionPath = "locked" | "strict_equivalent" | "graphql_reuse" | "create_new" | "preview_resolved";
 
 export type AtomDecision = {
   label: string;
@@ -114,6 +113,7 @@ export async function resolveAtoms(
   proposals: { proposal: ApprovedProposalWithRole; index: number }[],
   ctx: PublishContext,
   extraAtomLabels: string[] = [],
+  preResolvedAtoms?: Map<string, string>,
 ): Promise<{ atomMap: Map<string, string>; atomTxHash: string | null; atomDecisions: AtomDecision[] }> {
   const atomMap = new Map<string, string>();
   const atomDecisions: AtomDecision[] = [];
@@ -140,6 +140,19 @@ export async function resolveAtoms(
     if (slot.lockedId && !atomMap.has(slot.key)) {
       atomMap.set(slot.key, slot.lockedId);
       atomDecisions.push({ label: slot.label, termId: slot.lockedId, decisionPath: "locked" });
+    }
+  }
+
+  // Phase 1b: Inject pre-resolved atoms from preview (skip re-resolution)
+  if (preResolvedAtoms) {
+    for (const slot of allSlots) {
+      if (!atomMap.has(slot.key)) {
+        const termId = preResolvedAtoms.get(slot.key);
+        if (termId) {
+          atomMap.set(slot.key, termId);
+          atomDecisions.push({ label: slot.label, termId, decisionPath: "preview_resolved" });
+        }
+      }
     }
   }
 

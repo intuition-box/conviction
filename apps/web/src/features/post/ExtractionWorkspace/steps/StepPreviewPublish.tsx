@@ -19,9 +19,12 @@ import gridStyles from "./preview/postGrid.module.css";
 import checkStyles from "./preview/checklist.module.css";
 
 import { PostCard } from "./preview/PostCard";
+import { RelatedPanel } from "./preview/RelatedPanel";
 import { ProtocolDetails, type StanceInfo, type TagInfo } from "./preview/ProtocolDetails";
 import { useHighlightedText } from "./preview/useHighlightedText";
 import { usePreviewModel } from "./preview/usePreviewModel";
+import { assignNestedToDrafts } from "../extraction";
+import { useDuplicateCheck } from "../hooks/useDuplicateCheck";
 import { type HoverTerms } from "./preview/previewTypes";
 
 const SLOT_FIELD_MAP: Record<string, "sText" | "pText" | "oText"> = {
@@ -78,6 +81,34 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     resetPublishError,
   } = flow;
 
+  const nonRejectedProposals = useMemo(
+    () => proposals.filter((p) => p.status !== "rejected"),
+    [proposals],
+  );
+
+  const { byDraft: dupNestedEdgesByDraft } = useMemo(
+    () => assignNestedToDrafts(visibleNestedProposals, draftPosts, nonRejectedProposals, flow.derivedTriples),
+    [visibleNestedProposals, draftPosts, nonRejectedProposals, flow.derivedTriples],
+  );
+
+  const { duplicatesByDraft, blockedDraftIds } = useDuplicateCheck({
+    draftPosts,
+    mainRefByDraft,
+    proposals: approvedProposals,
+    approvedTripleStatuses: flow.approvedTripleStatuses,
+    approvedTripleStatus,
+    nestedTripleStatuses: flow.nestedTripleStatuses,
+    nestedEdgesByDraft: dupNestedEdgesByDraft,
+    nestedRefLabels,
+    derivedTriples: flow.derivedTriples,
+    derivedCanonicalLabels: flow.derivedCanonicalLabels,
+    parentPostId: extractionJob?.parentPostId ?? null,
+  });
+
+  useEffect(() => {
+    flow.setBlockedDraftIds(blockedDraftIds);
+  }, [blockedDraftIds, flow.setBlockedDraftIds]);
+
   const model = usePreviewModel({
     approvedProposals,
     approvedTripleStatuses: flow.approvedTripleStatuses,
@@ -105,6 +136,8 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     parentClaim: flow.parentClaim,
     resolvedAtomMap: flow.resolvedAtomMap,
     nestedTripleStatuses: flow.nestedTripleStatuses,
+    metadataTripleStatuses: flow.metadataTripleStatuses,
+    blockedDraftIds,
     onConnect,
     onBack,
     publishOnchain,
@@ -171,17 +204,40 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
       };
     });
 
-    return [...nestedPseudo, ...core].sort((a, b) => {
+    const derivedPseudo = (flow.derivedTriples ?? []).map((dt) => {
+      let postNum: number | undefined;
+      for (const [i, draft] of draftPosts.entries()) {
+        const draftProposals = draft.proposalIds
+          .map((pid) => proposals.find((p) => p.id === pid))
+          .filter(Boolean);
+        if (draftProposals.some((p) => p!.groupKey === dt.ownerGroupKey)) {
+          postNum = i + 1;
+          break;
+        }
+      }
+      const c = flow.derivedCanonicalLabels?.get(dt.stableKey);
+      return {
+        id: `derived:${dt.stableKey}`,
+        stableKey: dt.stableKey,
+        sText: c?.s ?? dt.subject,
+        pText: c?.p ?? dt.predicate,
+        oText: c?.o ?? dt.object,
+        role: "SUPPORTING" as const,
+        postNumber: postNum,
+      };
+    });
+
+    return [...nestedPseudo, ...derivedPseudo, ...core].sort((a, b) => {
       const postA = a.postNumber ?? Number.MAX_SAFE_INTEGER;
       const postB = b.postNumber ?? Number.MAX_SAFE_INTEGER;
       if (postA !== postB) return postA - postB;
       if (a.role !== b.role) return a.role === "MAIN" ? -1 : 1;
-      const aNested = a.id.startsWith("nested:");
-      const bNested = b.id.startsWith("nested:");
+      const aNested = a.id.startsWith("nested:") || a.id.startsWith("derived:");
+      const bNested = b.id.startsWith("nested:") || b.id.startsWith("derived:");
       if (aNested !== bNested) return aNested ? -1 : 1;
       return a.id.localeCompare(b.id);
     });
-  }, [proposals, draftPosts, mainRefByDraft, proposalPostMap, visibleNestedProposals, nestedRefLabels, model.nestedEdgesByDraft]);
+  }, [proposals, draftPosts, mainRefByDraft, proposalPostMap, visibleNestedProposals, nestedRefLabels, model.nestedEdgesByDraft, flow.derivedTriples, flow.derivedCanonicalLabels]);
 
   const reasoningSummary = useMemo(
     () => buildReasoningSummaryText(proposals, draftPosts, {
@@ -222,6 +278,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     derivedTriples: flow.derivedTriples,
     onUpdateNestedPredicate: flow.updateNestedPredicate,
     onUpdateNestedAtom: flow.updateNestedAtom,
+    onUpdateDerivedTriple: flow.updateDerivedTriple,
   });
 
   const existingTripleTermIds = useMemo(
@@ -271,9 +328,29 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
       draftIndex: entry.draftIndex,
       mainTarget: entry.mainTarget,
       themeLabel: entry.themeName,
+      themeSlug: entry.themeSlug,
     })),
     [model.publishPlan.metadata.tagEntries],
   );
+
+  const allBlocked = draftPosts.length > 0 && draftPosts.every((d) => blockedDraftIds.has(d.id));
+
+  const hasRelatedPosts = useMemo(() => {
+    for (const dups of duplicatesByDraft.values()) {
+      if (dups.some((d) => !d.isBlocking)) return true;
+    }
+    return false;
+  }, [duplicatesByDraft]);
+
+  const [chatTab, setChatTab] = useState<"refine" | "related">("refine");
+  useEffect(() => {
+    if (!hasRelatedPosts && chatTab === "related") setChatTab("refine");
+  }, [hasRelatedPosts, chatTab]);
+
+  const handleShowRelated = useCallback(() => {
+    onChatOpenChange(true);
+    setChatTab("related");
+  }, [onChatOpenChange]);
 
   const highlightedText = useHighlightedText(extractedInputText, hoveredTerms, draftPosts.length);
   if (model.viewState === "publishing") {
@@ -350,12 +427,14 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
           tagTriples={tagTriples}
           mainRefByDraft={mainRefByDraft}
           nestedTripleStatuses={model.nestedTripleStatuses}
+          metadataTripleStatuses={model.metadataTripleStatuses}
+          derivedCanonicalLabels={flow.derivedCanonicalLabels}
         />
       </div>
     );
   }
 
-  const showChat = chatOpen && model.extractionComplete && proposalCount > 0;
+  const showChat = chatOpen && model.extractionComplete && proposalCount > 0 && !allBlocked;
 
   return (
     <div className={styles.previewLayout} data-chat-open={showChat || undefined}>
@@ -390,7 +469,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
             </div>
           )}
 
-          {model.extractionComplete && proposalCount > 0 && (
+          {model.extractionComplete && proposalCount > 0 && !allBlocked && (
             <button
               type="button"
               className={styles.chatToggle}
@@ -418,10 +497,16 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
                     allNestedProposals={visibleNestedProposals}
                     nestedRefLabels={nestedRefLabels}
                     derivedTriples={flow.derivedTriples}
+                    derivedCanonicalLabels={flow.derivedCanonicalLabels}
                     mainRef={mainRefByDraft.get(draft.id) ?? null}
                     stanceRequired={stanceRequired}
                     onHover={setHoveredTerms}
                     onRemove={draftPosts.length > 1 ? () => draftActions.onRemove(draft.id) : undefined}
+                    duplicates={duplicatesByDraft.get(draft.id)}
+                    isBlocked={blockedDraftIds.has(draft.id)}
+                    blockingDuplicate={(duplicatesByDraft.get(draft.id) ?? []).find((d) => d.isBlocking)}
+                    onShowRelated={handleShowRelated}
+                    onStanceChange={(s) => draftActions.onStanceChange(draft.id, s)}
                   />
                 ))}
               </div>
@@ -457,7 +542,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
             </div>
           )}
 
-          {approvedProposals.length > 0 && (
+          {approvedProposals.length > 0 && !allBlocked && (
             <ProtocolDetails
               approvedTripleStatus={approvedTripleStatus}
               atomSummary={model.atomSummary}
@@ -484,6 +569,8 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
               mainNestedCount={model.mainNestedCount}
               mainRefByDraft={mainRefByDraft}
               nestedTripleStatuses={model.nestedTripleStatuses}
+              metadataTripleStatuses={model.metadataTripleStatuses}
+              derivedCanonicalLabels={flow.derivedCanonicalLabels}
             />
           )}
 
@@ -517,31 +604,60 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
 
       {showChat && (
         <div className={styles.chatPanel}>
-          <RefineChat
-            panel
-            messages={refineChat.messages}
-            isStreaming={refineChat.isStreaming}
-            error={refineChat.error}
-            onSend={refineChat.sendMessage}
-            onAction={refineChat.handleAction}
-            onStop={refineChat.stopStreaming}
-            onClear={refineChat.clearChat}
-            onPropagateAtom={handlePropagateAtom}
-            getSlotText={getSlotText}
-            proposals={approvedProposals}
-            draftPosts={draftPosts}
-            nestedEdges={visibleNestedProposals}
-            derivedTriples={flow.derivedTriples}
-            approvedTripleStatuses={flow.approvedTripleStatuses}
-            tripleVaultMetrics={tripleMetrics.data}
-            tripleMetricsLoading={tripleMetrics.isLoading}
-            tripleMetricsError={tripleMetrics.fetchError}
-            searchAtomForEdit={refineChat.searchAtomForEdit}
-            onUpdateNestedPredicate={flow.updateNestedPredicate}
-            onUpdateNestedAtom={flow.updateNestedAtom}
-            onSetNewTermLocal={flow.proposalActions.onSetNewTermLocal}
-            resolvedAtomMap={flow.resolvedAtomMap}
-          />
+          {hasRelatedPosts && (
+            <div role="tablist" className={styles.chatTabBar}>
+              <button
+                role="tab"
+                aria-selected={chatTab === "refine"}
+                className={`${styles.chatTabBtn} ${chatTab === "refine" ? styles.chatTabBtnActive : ""}`}
+                onClick={() => setChatTab("refine")}
+              >
+                Refine
+              </button>
+              <button
+                role="tab"
+                aria-selected={chatTab === "related"}
+                className={`${styles.chatTabBtn} ${chatTab === "related" ? styles.chatTabBtnActive : ""}`}
+                onClick={() => setChatTab("related")}
+              >
+                Related
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: chatTab === "refine" ? "contents" : "none" }}>
+            <RefineChat
+              panel
+              messages={refineChat.messages}
+              isStreaming={refineChat.isStreaming}
+              error={refineChat.error}
+              onSend={refineChat.sendMessage}
+              onAction={refineChat.handleAction}
+              onStop={refineChat.stopStreaming}
+              onClear={refineChat.clearChat}
+              onPropagateAtom={handlePropagateAtom}
+              getSlotText={getSlotText}
+              proposals={approvedProposals}
+              draftPosts={draftPosts}
+              nestedEdges={visibleNestedProposals}
+              derivedTriples={flow.derivedTriples}
+              approvedTripleStatuses={flow.approvedTripleStatuses}
+              tripleVaultMetrics={tripleMetrics.data}
+              tripleMetricsLoading={tripleMetrics.isLoading}
+              tripleMetricsError={tripleMetrics.fetchError}
+              searchAtomForEdit={refineChat.searchAtomForEdit}
+              onUpdateNestedPredicate={flow.updateNestedPredicate}
+              onUpdateNestedAtom={flow.updateNestedAtom}
+              onUpdateDerivedTriple={flow.updateDerivedTriple}
+              onSetNewTermLocal={flow.proposalActions.onSetNewTermLocal}
+              resolvedAtomMap={flow.resolvedAtomMap}
+              nestedTripleStatuses={flow.nestedTripleStatuses}
+              derivedCanonicalLabels={flow.derivedCanonicalLabels}
+            />
+          </div>
+          <div style={{ display: chatTab === "related" ? "contents" : "none" }}>
+            <RelatedPanel duplicatesByDraft={duplicatesByDraft} />
+          </div>
         </div>
       )}
     </div>

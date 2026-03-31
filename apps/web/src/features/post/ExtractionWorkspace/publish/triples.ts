@@ -59,6 +59,7 @@ export async function resolveTriples(
   resolvedByIndex: Array<ResolvedTriple | null>,
   ctx: PublishContext,
   directMainProposalIds?: Set<string>,
+  preResolvedTriples?: Map<string, { tripleTermId: string; isExisting: boolean }>,
 ): Promise<{ tripleTxHash: string | null }> {
   type TripleEntry = {
     proposalId: string;
@@ -78,9 +79,36 @@ export async function resolveTriples(
     objectAtomId: atomMap.get(atomKey(proposal.oText))!,
   }));
 
+  // Inject pre-resolved triples from preview (skip re-resolution for existing ones)
+  const unresolvedTripleEntries: TripleEntry[] = [];
+  if (preResolvedTriples) {
+    for (const entry of tripleEntries) {
+      const pre = preResolvedTriples.get(entry.proposalId);
+      if (pre?.isExisting) {
+        resolvedByIndex[entry.index] = {
+          proposalId: entry.proposalId,
+          role: entry.role,
+          subjectAtomId: entry.subjectAtomId,
+          predicateAtomId: entry.predicateAtomId,
+          objectAtomId: entry.objectAtomId,
+          tripleTermId: pre.tripleTermId,
+          isExisting: true,
+        };
+      } else {
+        unresolvedTripleEntries.push(entry);
+      }
+    }
+  } else {
+    unresolvedTripleEntries.push(...tripleEntries);
+  }
+
+  if (unresolvedTripleEntries.length === 0) {
+    return { tripleTxHash: null };
+  }
+
   let existingTripleResults;
   try {
-    const tripleQueries = tripleEntries.map(
+    const tripleQueries = unresolvedTripleEntries.map(
       (t) => [t.subjectAtomId, t.predicateAtomId, t.objectAtomId] as [string, string, string],
     );
     existingTripleResults = await findTripleIds(ctx.accountAddress, tripleQueries);
@@ -98,7 +126,7 @@ export async function resolveTriples(
 
   const newTripleEntries: TripleEntry[] = [];
 
-  for (const entry of tripleEntries) {
+  for (const entry of unresolvedTripleEntries) {
     const key = `${entry.subjectAtomId}-${entry.predicateAtomId}-${entry.objectAtomId}`;
     const existingId = tripleIdMap.get(key);
     if (existingId) {
@@ -220,11 +248,26 @@ export async function resolveDerivedTriples(params: {
   derivedTriples: DerivedTripleDraft[];
   atomMap: Map<string, string>;
   ctx: PublishContext;
+  preResolvedDerived?: Map<string, string>;
 }): Promise<{ resolvedDerived: Map<string, string>; derivedTxHash: string | null }> {
-  const { derivedTriples, atomMap, ctx } = params;
+  const { derivedTriples, atomMap, ctx, preResolvedDerived } = params;
   const resolvedDerived = new Map<string, string>();
 
   if (derivedTriples.length === 0) {
+    return { resolvedDerived, derivedTxHash: null };
+  }
+
+  // Inject pre-resolved derived triples from preview (skip re-resolution)
+  if (preResolvedDerived) {
+    for (const dt of derivedTriples) {
+      const termId = preResolvedDerived.get(dt.stableKey);
+      if (termId) resolvedDerived.set(dt.stableKey, termId);
+    }
+  }
+
+  // Filter out already resolved
+  const unresolvedTriples = derivedTriples.filter((dt) => !resolvedDerived.has(dt.stableKey));
+  if (unresolvedTriples.length === 0) {
     return { resolvedDerived, derivedTxHash: null };
   }
 
@@ -236,7 +279,7 @@ export async function resolveDerivedTriples(params: {
   };
 
   const entries: DerivedEntry[] = [];
-  for (const dt of derivedTriples) {
+  for (const dt of unresolvedTriples) {
     const sId = atomMap.get(atomKey(dt.subject));
     const pId = atomMap.get(atomKey(dt.predicate));
     const oId = atomMap.get(atomKey(dt.object));

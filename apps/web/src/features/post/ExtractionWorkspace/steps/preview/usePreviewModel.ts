@@ -56,6 +56,8 @@ export type PreviewModelInputs = {
   themes: { slug: string; name: string }[];
   parentClaim?: string | null;
   resolvedAtomMap?: Map<string, string>;
+  metadataTripleStatuses?: Map<string, string>;
+  blockedDraftIds?: Set<string>;
   onConnect: () => void;
   onBack: () => void;
   publishOnchain: () => void;
@@ -103,6 +105,7 @@ export type PreviewModel = {
   orphanedKeys: Set<string>;
   hasBlockingOrphans: boolean;
   nestedTripleStatuses: Map<string, string>;
+  metadataTripleStatuses: Map<string, string>;
 };
 
 export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
@@ -133,6 +136,8 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     themes,
     parentClaim,
     resolvedAtomMap,
+    metadataTripleStatuses,
+    blockedDraftIds,
     onConnect,
     onBack,
     publishOnchain,
@@ -255,18 +260,22 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
   const existingDirectMainCount = tripleSummary.existingTriples
     .filter((t) => directMainProposalIds.has(t.proposal.id)).length;
 
-  const existingNestedCount = nestedTripleStatuses.size;
+  const existingDerivedCount = derivedTriples.filter((dt) => nestedTripleStatuses.has(dt.stableKey)).length;
+  const existingNestedEdgeCount = visibleNestedProposals.filter((np) => nestedTripleStatuses.has(np.stableKey)).length;
+  const existingNestedCount = existingNestedEdgeCount + existingDerivedCount;
   const existingNestedMainCount = [...mainNestedIds].filter((key) => nestedTripleStatuses.has(key)).length;
-  const existingTripleCount = tripleSummary.existingTriples.length + existingNestedCount;
+  const existingTagCount = publishPlan.metadata.tagEntries
+    .filter((e) => metadataTripleStatuses?.has(`tag-${e.draftId}-${e.themeSlug}`)).length;
+  const existingTripleCount = tripleSummary.existingTriples.length + existingNestedCount + existingTagCount;
 
   const newDirectMainCount = tripleSummary.newTriples
     .filter((t) => directMainProposalIds.has(t.proposal.id)).length;
   const newNonMainCoreCount = tripleSummary.newTriples.length - newDirectMainCount;
 
   const newNestedMainCount = mainNestedIds.size - existingNestedMainCount;
-  const newNonMainNestedCount = Math.max(0, visibleNestedProposals.length - mainNestedIds.size - (existingNestedCount - existingNestedMainCount));
+  const newNonMainNestedCount = Math.max(0, visibleNestedProposals.length - mainNestedIds.size - (existingNestedEdgeCount - existingNestedMainCount));
 
-  const newDerivedCount = derivedTriples.length;
+  const newDerivedCount = derivedTriples.length - existingDerivedCount;
 
   const costReady = atomCost !== null && tripleCost !== null && minDeposit !== null && approvedTripleStatus === "ready";
 
@@ -277,7 +286,8 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     const mainTotal = (tripleCost + minDeposit) * BigInt(newDirectMainCount + newNestedMainCount);
     const nonMainTotal = tripleCost * BigInt(newNonMainCoreCount + newNonMainNestedCount + newDerivedCount);
     const stanceTotal = tripleCost * BigInt(publishPlan.metadata.stanceEntries.length);
-    const tagTotal = tripleCost * BigInt(publishPlan.metadata.tagEntries.length);
+    const newTagCount = publishPlan.metadata.tagEntries.length - existingTagCount;
+    const tagTotal = tripleCost * BigInt(newTagCount);
     const existingMainTotal = minDeposit * BigInt(existingDirectMainCount);
 
     return newAtomTotal + mainTotal + nonMainTotal + stanceTotal + tagTotal + existingMainTotal;
@@ -294,6 +304,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     newDerivedCount,
     publishPlan.metadata.stanceEntries.length,
     publishPlan.metadata.tagEntries.length,
+    existingTagCount,
     existingDirectMainCount,
   ]);
 
@@ -394,17 +405,31 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     ctaLabel = "Resolving\u2026";
     ctaDisabled = true;
     ctaAction = () => {};
+  } else if (approvedTripleStatus === "error") {
+    ctaLabel = "Verification failed — Retry";
+    ctaDisabled = true;
+    ctaAction = () => {};
   } else {
-    const costSuffix = totalEstimate !== null && totalEstimate > 0n
-      ? ` \u00B7 ~${formatCost(totalEstimate)} ${currencySymbol}`
-      : "";
-    ctaLabel = draftPosts.length > 1
-      ? `Publish ${draftPosts.length} posts${costSuffix}`
-      : `Publish${costSuffix}`;
-    const hasMain = approvedProposals.some((p) => p.role === "MAIN") ||
-      [...mainRefByDraft.values()].some((ref) => ref?.type === "nested");
-    ctaDisabled = isCtaDisabled(approvedProposals.length, hasMain, checks);
-    ctaAction = publishOnchain;
+    const publishableDraftCount = blockedDraftIds
+      ? draftPosts.filter((d) => !blockedDraftIds.has(d.id)).length
+      : draftPosts.length;
+
+    if (publishableDraftCount === 0 && draftPosts.length > 0) {
+      ctaLabel = labels.duplicateAllBlocked;
+      ctaDisabled = true;
+      ctaAction = () => {};
+    } else {
+      const costSuffix = totalEstimate !== null && totalEstimate > 0n
+        ? ` \u00B7 ~${formatCost(totalEstimate)} ${currencySymbol}`
+        : "";
+      ctaLabel = publishableDraftCount > 1
+        ? `Publish ${publishableDraftCount} posts${costSuffix}`
+        : `Publish${costSuffix}`;
+      const hasMain = approvedProposals.some((p) => p.role === "MAIN") ||
+        [...mainRefByDraft.values()].some((ref) => ref?.type === "nested");
+      ctaDisabled = isCtaDisabled(approvedProposals.length, hasMain, checks);
+      ctaAction = publishOnchain;
+    }
   }
 
   return {
@@ -430,5 +455,6 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     orphanedKeys,
     hasBlockingOrphans,
     nestedTripleStatuses,
+    metadataTripleStatuses: metadataTripleStatuses ?? new Map(),
   };
 }

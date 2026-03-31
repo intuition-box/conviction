@@ -69,7 +69,12 @@ export const labels = {
   splitNoticeTitle: "Your text was split into {count} posts",
   splitNoticeBody: "Each post focuses on a single debatable claim, making it easier for others to respond.",
 
-  stanceWarningPrefix: "Stance mismatch:",
+  duplicateCrossDebate: "All or part of your argument is also discussed elsewhere.",
+  duplicateAndOthers: "and {n} other(s)",
+  duplicateBlockedTitle: "This post already exists.",
+  duplicateBlockedCta: "View & vote",
+  duplicateRelatedTitle: "Related posts",
+  duplicateAllBlocked: "Already published",
 
   rejectionOffTopic: "Your text doesn't seem related to this debate. Make sure you're replying to the right claim.",
   rejectionNotDebatable: "This doesn't contain a debatable argument. Try rephrasing as a clear claim.",

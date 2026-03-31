@@ -1,3 +1,5 @@
+import * as Tooltip from "@radix-ui/react-tooltip";
+
 import { ProtocolBadge } from "@/components/ProtocolBadge/ProtocolBadge";
 import { labels } from "@/lib/vocabulary";
 
@@ -9,6 +11,7 @@ import {
   type NestedProposalDraft,
 } from "../../extraction";
 import { StructuredTripleInline } from "../../components/StructuredTripleInline";
+import type { DuplicateInfo } from "../../hooks/useDuplicateCheck";
 import cardStyles from "./cardStyles.module.css";
 
 import { type HoverTerms } from "./previewTypes";
@@ -22,10 +25,16 @@ export type PostCardProps = {
   allNestedProposals: NestedProposalDraft[];
   nestedRefLabels: Map<string, string>;
   derivedTriples?: DerivedTripleDraft[];
+  derivedCanonicalLabels?: Map<string, { s?: string; p?: string; o?: string }>;
   mainRef: MainRef | null;
   stanceRequired: boolean;
   onHover: (terms: HoverTerms | null) => void;
   onRemove?: () => void;
+  duplicates?: DuplicateInfo[];
+  isBlocked?: boolean;
+  blockingDuplicate?: DuplicateInfo;
+  onShowRelated?: () => void;
+  onStanceChange?: (stance: "SUPPORTS" | "REFUTES") => void;
 };
 
 export function PostCard({
@@ -37,10 +46,16 @@ export function PostCard({
   allNestedProposals,
   nestedRefLabels,
   derivedTriples,
+  derivedCanonicalLabels,
   mainRef,
   stanceRequired,
   onHover,
   onRemove,
+  duplicates,
+  isBlocked,
+  blockingDuplicate,
+  onShowRelated,
+  onStanceChange,
 }: PostCardProps) {
   const draftProposals = proposals.filter((p) =>
     draft.proposalIds.includes(p.id) && p.status === "approved",
@@ -50,6 +65,8 @@ export function PostCard({
   const misaligned = stanceRequired
     ? draftProposals.find((p) => p.stanceAligned === false && p.isRelevant !== false)
     : null;
+
+  const informationalDups = (duplicates ?? []).filter((d) => !d.isBlocking);
 
   return (
     <div
@@ -97,6 +114,30 @@ export function PostCard({
       onMouseLeave={() => onHover(null)}
     >
 
+      {informationalDups.length > 0 && !isBlocked && (
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <button
+              type="button"
+              className={cardStyles.duplicateDot}
+              aria-label="View related posts"
+              onClick={(e) => { e.stopPropagation(); onShowRelated?.(); }}
+            />
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content className={cardStyles.duplicateTooltip} side="top" sideOffset={4}>
+              <p>{labels.duplicateCrossDebate}</p>
+              {informationalDups.length > 1 && (
+                <p className={cardStyles.duplicateMore}>
+                  {labels.duplicateAndOthers.replace("{n}", String(informationalDups.length - 1))}
+                </p>
+              )}
+              <Tooltip.Arrow />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+      )}
+
       <div className={cardStyles.header}>
         {totalDrafts > 1 && (
           <span className={cardStyles.headerTitle}>
@@ -115,36 +156,70 @@ export function PostCard({
         )}
       </div>
 
-      {misaligned && (
-        <div className={cardStyles.stanceWarning}>
-          <span className={cardStyles.stanceWarningIcon}>&#9888;</span>
-          <span>
-            {labels.stanceWarningPrefix}{" "}
-            {misaligned.stanceReason
-              ? misaligned.stanceReason
-              : `This claim seems to ${misaligned.suggestedStance === "SUPPORTS" ? "support" : "refute"} the parent, not ${draft.stance === "SUPPORTS" ? "support" : "refute"} it.`}
-          </span>
+      {isBlocked && blockingDuplicate ? (
+        <div className={cardStyles.blockedCard}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <p className={cardStyles.blockedTitle}>{labels.duplicateBlockedTitle}</p>
+          <p className={cardStyles.blockedBody}>
+            &ldquo;{blockingDuplicate.postBody}&rdquo;
+            {blockingDuplicate.authorDisplayName && (
+              <span className={cardStyles.blockedAuthor}>
+                {" "}&mdash; {blockingDuplicate.authorDisplayName}
+              </span>
+            )}
+          </p>
+          <a
+            href={`/posts/${blockingDuplicate.postId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cardStyles.blockedCta}
+          >
+            {labels.duplicateBlockedCta} &rarr;
+          </a>
         </div>
-      )}
-
-      {draft.body ? (
-        <p className={cardStyles.body}>{draft.body}</p>
       ) : (
-        <p className={cardStyles.bodyMuted}>No body</p>
-      )}
+        <>
+          {misaligned && (
+            <div className={cardStyles.stanceWarning}>
+              <span className={cardStyles.stanceWarningIcon}>&#9888;</span>
+              <span>
+                {`This looks more like a ${misaligned.suggestedStance === "SUPPORTS" ? "support" : "rebuttal"}.`}
+              </span>
+              {onStanceChange && misaligned.suggestedStance && (
+                <button
+                  type="button"
+                  className={cardStyles.stanceSwitch}
+                  onClick={() => onStanceChange(misaligned.suggestedStance as "SUPPORTS" | "REFUTES")}
+                >
+                  Switch
+                </button>
+              )}
+            </div>
+          )}
 
-      {mainRef && mainRef.type !== "error" && (
-        <div className={cardStyles.actions}>
-          <ProtocolBadge />
-          <StructuredTripleInline
-            target={mainRef}
-            proposals={proposals}
-            nestedProposals={allNestedProposals}
-            nestedRefLabels={nestedRefLabels}
-            derivedTriples={derivedTriples}
-            wrap
-          />
-        </div>
+          {draft.body ? (
+            <p className={cardStyles.body}>{draft.body}</p>
+          ) : (
+            <p className={cardStyles.bodyMuted}>No body</p>
+          )}
+
+          {mainRef && mainRef.type !== "error" && (
+            <div className={cardStyles.actions}>
+              <ProtocolBadge />
+              <StructuredTripleInline
+                target={mainRef}
+                proposals={proposals}
+                nestedProposals={allNestedProposals}
+                nestedRefLabels={nestedRefLabels}
+                derivedTriples={derivedTriples}
+                derivedCanonicalLabels={derivedCanonicalLabels}
+                wrap
+              />
+            </div>
+          )}
+        </>
       )}
 
     </div>

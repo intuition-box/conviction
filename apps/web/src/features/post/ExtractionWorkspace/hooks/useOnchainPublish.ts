@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import type { Address, PublicClient, WalletClient } from "viem";
 import { getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
@@ -32,6 +32,7 @@ import {
   type NestedProposalDraft,
   type ProposalDraft,
   type PublishSummary,
+  type ResolutionMap,
   type ResolvedNestedTriple,
   type ResolvedTriple,
   type TxPlanItem,
@@ -83,6 +84,10 @@ type UseOnchainPublishParams = {
   mainRefByDraft: Map<string, MainRef | null>;
   derivedTriples: DerivedTripleDraft[];
   nestedRefLabels: Map<string, string>;
+  /** Draft IDs where fingerprint matched an existing on-chain tree — skip nested/derived creation. */
+  fullTreeMatchDraftIds?: Set<string>;
+  /** Pre-resolved data from preview — avoids re-resolving atoms/triples/nested/metadata. */
+  resolutionMap?: ResolutionMap | null;
 };
 
 export type PublishStep = "preparing" | "terms" | "claims" | "linking" | "finalizing";
@@ -94,6 +99,7 @@ type UseOnchainPublishReturn = {
   publishOnchain: () => Promise<void>;
   switchToCorrectChain: () => Promise<void>;
   resetPublishError: () => void;
+  setBlockedDraftIds: (ids: Set<string>) => void;
 };
 
 export function useOnchainPublish({
@@ -123,8 +129,11 @@ export function useOnchainPublish({
   mainRefByDraft,
   derivedTriples,
   nestedRefLabels,
+  fullTreeMatchDraftIds,
+  resolutionMap,
 }: UseOnchainPublishParams): UseOnchainPublishReturn {
   const [isPublishing, setIsPublishing] = useState(false);
+  const blockedDraftIdsRef = useRef<Set<string>>(new Set());
   const [publishStep, setPublishStep] = useState<PublishStep | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
 
@@ -362,7 +371,7 @@ export function useOnchainPublish({
       setPublishStep("terms");
 
       if (toResolve.length > 0 || visibleNestedProposals.length > 0 || derivedTriples.length > 0) {
-        const atomResult = await resolveAtoms(toResolve, ctx, allExtraAtomLabels);
+        const atomResult = await resolveAtoms(toResolve, ctx, allExtraAtomLabels, resolutionMap?.atoms);
         atomTxHash = atomResult.atomTxHash;
 
         // Update theme atoms that were just created on-chain
@@ -388,17 +397,33 @@ export function useOnchainPublish({
         setPublishStep("claims");
 
         if (toResolve.length > 0) {
-          const tripleResult = await resolveTriples(toResolve, atomResult.atomMap, resolvedByIndex, ctx, directMainProposalIds);
+          const tripleResult = await resolveTriples(toResolve, atomResult.atomMap, resolvedByIndex, ctx, directMainProposalIds, resolutionMap?.flatTriples);
           tripleTxHash = tripleResult.tripleTxHash;
         }
 
         const resolvedTripleMap = buildResolvedTripleMap(resolvedByIndex, publishableProposals);
 
-        if (derivedTriples.length > 0) {
+        const matchedStableKeys = new Set<string>();
+        if (fullTreeMatchDraftIds?.size) {
+          for (const draft of draftPosts) {
+            if (!fullTreeMatchDraftIds.has(draft.id)) continue;
+            for (const pid of draft.proposalIds) {
+              const p = proposals.find((pr) => pr.id === pid);
+              if (p?.stableKey) matchedStableKeys.add(p.stableKey);
+            }
+          }
+        }
+
+        const effectiveDerived = matchedStableKeys.size > 0
+          ? derivedTriples.filter((dt) => !matchedStableKeys.has(dt.ownerGroupKey))
+          : derivedTriples;
+
+        if (effectiveDerived.length > 0) {
           const derivedResult = await resolveDerivedTriples({
-            derivedTriples,
+            derivedTriples: effectiveDerived,
             atomMap: atomResult.atomMap,
             ctx,
+            preResolvedDerived: resolutionMap?.nestedTriples,
           });
           derivedTxHash = derivedResult.derivedTxHash;
           for (const [sk, tid] of derivedResult.resolvedDerived) {
@@ -413,6 +438,7 @@ export function useOnchainPublish({
             atomMap: atomResult.atomMap,
             ctx,
             mainNestedIds,
+            preResolvedNested: resolutionMap?.nestedTriples,
           });
           resolvedNestedTriples = nestedResult.resolvedNested;
           nestedTxHash = nestedResult.nestedTxHash;
@@ -460,6 +486,7 @@ export function useOnchainPublish({
       const resolvedThemeMap = new Map(resolvedThemes.map((t) => [t.slug, t]));
 
       // Resolve tag entries from publishPlan — match each entry's themeSlug to resolved atomTermId
+      const preResolvedMetadata = resolutionMap?.metadataTriples;
       for (const entry of publishPlan.metadata.tagEntries) {
         const mainRef = mainRefByDraft.get(entry.draftId) ?? null;
         const mainTripleTermId = resolveMainTripleTermId(mainRef, resolvedByIndex, resolvedNestedTriples);
@@ -474,6 +501,10 @@ export function useOnchainPublish({
         const dedupeKey = `${mainTripleTermId}-${resolved.atomTermId}`;
         if (seenTagTriples.has(dedupeKey)) continue;
         seenTagTriples.add(dedupeKey);
+
+        const metaKey = `tag-${entry.draftId}-${entry.themeSlug}`;
+        if (preResolvedMetadata?.has(metaKey)) continue;
+
         resolvedPlan.tagEntries.push({
           mainTripleTermId,
           mainProposalId: entry.mainProposalId ?? entry.draftId,
@@ -506,7 +537,8 @@ export function useOnchainPublish({
         nestedRefLabels,
       );
       const draftPayloads = allDraftPayloads.filter(
-        (p) => p.triples.length > 0 || p.nestedTriples.length > 0,
+        (p) => (p.triples.length > 0 || p.nestedTriples.length > 0)
+          && !blockedDraftIdsRef.current.has(p.draftId),
       );
 
       const existingMainTripleTermIds = draftPayloads.flatMap((post) => [
@@ -636,6 +668,10 @@ export function useOnchainPublish({
     }
   }
 
+  const setBlockedDraftIds = useCallback((ids: Set<string>) => {
+    blockedDraftIdsRef.current = ids;
+  }, []);
+
   return {
     isPublishing,
     publishStep,
@@ -643,5 +679,6 @@ export function useOnchainPublish({
     publishOnchain,
     switchToCorrectChain,
     resetPublishError: () => setPublishError(null),
+    setBlockedDraftIds,
   };
 }
