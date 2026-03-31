@@ -43,24 +43,42 @@ export async function resolveAtomIds(
 
   ensureIntuitionGraphql();
 
-  const results = await Promise.all(
-    deduped.map(async (label) => {
-      const normalized = normalizeLabelForChain(label);
-      const atoms = await fetchAtomsByWhere(
-        { label: { _ilike: escapeLike(normalized) } },
-        20,
-      );
-      const best = atoms[0];
-      if (!best?.term_id) return null;
-      return {
+  const normalizedMap = new Map<string, string>();
+  for (const label of deduped) {
+    normalizedMap.set(label, normalizeLabelForChain(label));
+  }
+
+  const uniqueNormalized = [...new Set(normalizedMap.values())];
+  const orClauses = uniqueNormalized.map((n) => ({ label: { _ilike: escapeLike(n) } }));
+
+  const allAtoms = await fetchAtomsByWhere({ _or: orClauses }, uniqueNormalized.length * 5);
+
+  const atomsByNormalized = new Map<string, typeof allAtoms[0]>();
+  for (const atom of allAtoms) {
+    const atomLabel = atom.label?.trim();
+    if (!atomLabel || !atom.term_id) continue;
+    const atomLower = atomLabel.toLowerCase();
+    for (const normalized of uniqueNormalized) {
+      if (atomLower === normalized.toLowerCase() && !atomsByNormalized.has(normalized)) {
+        atomsByNormalized.set(normalized, atom);
+      }
+    }
+  }
+
+  const results: Array<{ inputLabel: string; termId: string; canonicalLabel: string }> = [];
+  for (const label of deduped) {
+    const normalized = normalizedMap.get(label)!;
+    const best = atomsByNormalized.get(normalized);
+    if (best?.term_id) {
+      results.push({
         inputLabel: label,
         termId: String(best.term_id),
         canonicalLabel: best.label ?? label,
-      };
-    }),
-  );
+      });
+    }
+  }
 
-  return results.filter((r): r is NonNullable<typeof r> => r !== null);
+  return results;
 }
 
 export async function resolveAtomLabelsById(

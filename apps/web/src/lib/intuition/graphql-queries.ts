@@ -245,6 +245,68 @@ export async function fetchAtomsByWhere(
   }
 }
 
+const DEEP_TRIPLE_QUERY = `
+  query FindDeepTriples($where: triples_bool_exp) {
+    triples(where: $where) {
+      term_id
+      subject_id
+      object_id
+      counter_term_id
+      subject { term_id label }
+      predicate { term_id label }
+      object { term_id label }
+      term {
+        vaults(where: {curve_id: {_eq: "1"}}) {
+          total_shares
+          current_share_price
+          market_cap
+          position_count
+        }
+      }
+      counter_term {
+        vaults(where: {curve_id: {_eq: "1"}}) {
+          total_shares
+          current_share_price
+          market_cap
+          position_count
+        }
+      }
+    }
+  }
+`;
+
+export type GraphqlDeepTriple = GraphqlTriple & {
+  subject_id?: string | null;
+  object_id?: string | null;
+  counter_term_id?: string | null;
+};
+
+export async function fetchTripleDetailsBatch(
+  termIds: string[],
+): Promise<GraphqlDeepTriple[]> {
+  if (!termIds.length) return [];
+  try {
+    const res = await fetch(intuitionGraphqlUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: DEEP_TRIPLE_QUERY,
+        variables: {
+          where: { term_id: { _in: termIds } },
+        },
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const payload = await res.json();
+    return Array.isArray(payload?.data?.triples)
+      ? (payload.data.triples as GraphqlDeepTriple[])
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchSemanticAtoms(query: string, limit: number): Promise<GraphqlAtom[]> {
   try {
     const res = await fetch(intuitionGraphqlUrl, {
