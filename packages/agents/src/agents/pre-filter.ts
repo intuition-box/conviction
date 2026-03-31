@@ -20,8 +20,14 @@ Return ONLY JSON:
 Rules:
 - OK: text contains at least one debatable proposition (factual, normative, causal, or comparative). If parent context is given, the text must be related to it.
   Examples of OK: "Nuclear energy is safe", "We should ban TikTok", "AI will create more jobs than it destroys", "Shouldn't we invest more in renewables?"
-- OFF_TOPIC: text is completely unrelated to the parent claim (only use when parent context is provided).
-  Example: parent is about nuclear energy, child says "I love pizza" => OFF_TOPIC
+- OFF_TOPIC: the reply has NO argumentative link to the parent claim — not for, not against, not context, not consequence, not premise, not evidence. Only use when parent context is provided.
+  An INDIRECT angle is VALID — different vocabulary does not mean off-topic:
+  - Parent: "Nuclear energy is safe" → Reply: "Fukushima's cleanup cost $200 billion" => OK (economic consequence of a nuclear accident)
+  - Parent: "AI will replace most jobs" → Reply: "The industrial revolution created more jobs than it destroyed" => OK (historical parallel as counter-argument)
+  - Parent: "We should ban TikTok" → Reply: "Free speech protections apply to digital platforms" => OK (legal premise against the ban)
+  Truly off-topic — ZERO argumentative connection:
+  - Parent: "Nuclear energy is safe" → Reply: "I love pizza" => OFF_TOPIC
+  - Parent: "AI will replace most jobs" → Reply: "My cat is cute" => OFF_TOPIC
 - NOT_DEBATABLE: text is purely rhetoric, filler, bare agreement/disagreement, procedural question, or emotion with no argument.
   Examples: "yes I agree", "exactly", "nonsense", "lol what", "Can you explain?", "Good point!"
   NOT examples of NOT_DEBATABLE (these should be OK):

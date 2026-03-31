@@ -20,6 +20,8 @@ type NestedTripleData = {
   marketCap: number | null;
   holders: number | null;
   shares: number | null;
+  subjectNested?: NestedTripleData | null;
+  objectNested?: NestedTripleData | null;
 };
 
 type TripleData = {
@@ -261,15 +263,17 @@ export function TripleInspector({ triples, defaultTripleTermId, currentPostId, m
     const linkedIds = new Set(triples.map((triple) => triple.termId));
     const nestedChildIds = new Set<string>();
 
+    function collectChildIds(data: { subjectNested?: NestedTripleData | null; objectNested?: NestedTripleData | null }) {
+      for (const nested of [data.subjectNested, data.objectNested]) {
+        if (!nested || nestedChildIds.has(nested.termId)) continue;
+        if (linkedIds.has(nested.termId)) nestedChildIds.add(nested.termId);
+        collectChildIds(nested);
+      }
+    }
+
     for (const triple of triples) {
       const details = tripleMap[triple.termId];
-      if (!details) continue;
-
-      for (const nested of [details.subjectNested, details.objectNested]) {
-        if (nested && linkedIds.has(nested.termId)) {
-          nestedChildIds.add(nested.termId);
-        }
-      }
+      if (details) collectChildIds(details);
     }
 
     const filtered = triples.filter((triple) => !nestedChildIds.has(triple.termId));
@@ -290,17 +294,22 @@ export function TripleInspector({ triples, defaultTripleTermId, currentPostId, m
     }
   }, [activeId, defaultTripleTermId, displayTriples]);
 
-  // Collect unique nested triples for the active triple (dedup by termId)
-  const nestedTriples: NestedTripleData[] = [];
-  if (activeData) {
+  // Collect nested triples recursively (depth-first: deepest first)
+  const nestedTriples = useMemo(() => {
+    if (!activeData) return [];
+    const result: NestedTripleData[] = [];
     const seen = new Set<string>();
-    for (const nested of [activeData.subjectNested, activeData.objectNested]) {
-      if (nested && !seen.has(nested.termId)) {
-        seen.add(nested.termId);
-        nestedTriples.push(nested);
-      }
+    function walk(node: NestedTripleData | null | undefined) {
+      if (!node || seen.has(node.termId)) return;
+      seen.add(node.termId);
+      walk(node.subjectNested);
+      walk(node.objectNested);
+      result.push(node);
     }
-  }
+    walk(activeData.subjectNested);
+    walk(activeData.objectNested);
+    return result;
+  }, [activeData]);
 
   if (isLoading) return <div className={styles.loadingState}><p>Loading triple data...</p></div>;
   if (error) return <div className={styles.errorState}><p>{error}</p></div>;
@@ -340,7 +349,12 @@ export function TripleInspector({ triples, defaultTripleTermId, currentPostId, m
       >
         {tab === "related" && (
           <div className={styles.tabPanel}>
-            {relatedLoading && <p className={styles.hint}>Loading related posts...</p>}
+            {relatedLoading && (
+              <div className={styles.relatedLoading}>
+                <div className={styles.spinner} />
+                <p>Looking for related debates...</p>
+              </div>
+            )}
             {!relatedLoading && exactPosts.length > 0 && (
               <RelatedSection title="Same claim" posts={exactPosts} />
             )}

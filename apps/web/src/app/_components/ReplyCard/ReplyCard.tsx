@@ -31,6 +31,7 @@ export type ReplyCardProps = {
   /** When set, reply buttons stay visible with the active one highlighted. */
   activeReplyStance?: "SUPPORTS" | "REFUTES" | null;
   showBorder?: boolean;
+  linkTarget?: string;
 };
 
 export function ReplyCard({
@@ -49,6 +50,7 @@ export function ReplyCard({
   onReply,
   activeReplyStance,
   showBorder = true,
+  linkTarget,
 }: ReplyCardProps) {
   const stanceClass =
     stance === "SUPPORTS" ? styles.stanceSupports :
@@ -56,12 +58,12 @@ export function ReplyCard({
 
   return (
     <div className={`${styles.card} ${stanceClass} ${showBorder ? "" : styles.noBorder}`}>
-      <Link href={`/posts/${id}`} className={styles.link}>
+      <Link href={`/posts/${id}`} className={styles.link} target={linkTarget} rel={linkTarget === "_blank" ? "noopener noreferrer" : undefined}>
         <div className={styles.header}>
           <Avatar src={author?.avatar} name={authorLabel(author)} size="sm" />
           <span className={styles.author}>{authorLabel(author)}</span>
           {variant === "compact" && (
-            <span className={styles.time}>{formatRelativeTime(createdAt)}</span>
+            <span className={styles.time} suppressHydrationWarning>{formatRelativeTime(createdAt)}</span>
           )}
           {((themes && themes.length > 0) || (mainTripleTermId && sentimentData)) && (
             <div className={styles.headerRight}>

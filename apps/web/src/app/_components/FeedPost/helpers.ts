@@ -12,5 +12,7 @@ export function formatRelativeTime(isoDate: string) {
   if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d`;
-  return new Date(isoDate).toLocaleDateString();
+  const d = new Date(isoDate);
+  const month = d.toLocaleString(undefined, { month: "short" });
+  return `${month} ${d.getDate()}, ${d.getFullYear()}`;
 }

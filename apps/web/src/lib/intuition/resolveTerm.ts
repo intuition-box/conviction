@@ -1,11 +1,12 @@
 import "server-only";
 
-import { getTripleDetails } from "@0xintuition/sdk";
 import { parseVaultMetrics } from "@/lib/intuition/metrics";
 import { asNumber } from "@/lib/format/asNumber";
+import { fetchTripleDetailsBatch, type GraphqlDeepTriple } from "@/lib/intuition/graphql-queries";
+import type { MatchedTree } from "@/features/post/ExtractionWorkspace/extraction/types";
 
 export type IntuitionAtom = {
-  term_id: string;
+  term_id?: string | null;
   label?: string | null;
   data?: string | null;
 };
@@ -41,14 +42,11 @@ export type ResolvedTripleShape = {
   marketCap: number | null;
   holders: number | null;
   shares: number | null;
+  subjectNested?: ResolvedTripleShape | null;
+  objectNested?: ResolvedTripleShape | null;
 };
 
-export type ResolvedAtomLabel = {
-  label: string;
-  nestedTriple: ResolvedTripleShape | null;
-};
-
-function atomLabel(atom: IntuitionAtom | null | undefined): string {
+export function atomLabel(atom: { label?: string | null; data?: string | null } | null | undefined): string {
   return atom?.label || atom?.data || "Unknown";
 }
 
@@ -70,36 +68,88 @@ export function mapTripleShape(details: TripleDetails): ResolvedTripleShape {
   };
 }
 
-export async function resolveAtomLabel(
-  atom: IntuitionAtom | null | undefined,
-  fallbackTermId?: string | null,
-): Promise<ResolvedAtomLabel> {
-  const candidateIds = [
-    ...new Set(
-      [atom?.data, atom?.term_id, fallbackTermId].filter(Boolean) as string[],
-    ),
-  ];
-
-  for (const id of candidateIds) {
-    try {
-      const nested = await getTripleDetails(String(id));
-      if (nested) {
-        const shape = mapTripleShape(nested as TripleDetails);
-        const label = `${shape.subject} · ${shape.predicate} · ${shape.object}`;
-        return { label, nestedTriple: shape };
-      }
-    } catch {
-
-    }
-  }
-
-  if (atom?.label) {
-    return { label: atom.label, nestedTriple: null };
-  }
-
-  const fallback = atom?.data ?? atom?.term_id;
+function graphqlTripleToShape(t: GraphqlDeepTriple): ResolvedTripleShape {
+  const vault = t.term?.vaults?.[0];
+  const metrics = parseVaultMetrics(vault);
   return {
-    label: fallback ? String(fallback) : "Unknown",
-    nestedTriple: null,
+    termId: t.term_id ? String(t.term_id) : "",
+    subject: t.subject?.label || "Unknown",
+    predicate: t.predicate?.label || "Unknown",
+    object: t.object?.label || "Unknown",
+    counterTermId: t.counter_term_id ? String(t.counter_term_id) : null,
+    marketCap: metrics.marketCap,
+    holders: metrics.holders,
+    shares: metrics.shares,
+  };
+}
+
+export function toMatchedTree(shape: ResolvedTripleShape): MatchedTree {
+  const subjectNested = shape.subjectNested ? toMatchedTree(shape.subjectNested) : null;
+  const objectNested = shape.objectNested ? toMatchedTree(shape.objectNested) : null;
+  return {
+    termId: shape.termId || undefined,
+    subject: subjectNested ? subjectNested.subject : shape.subject,
+    predicate: shape.predicate,
+    object: objectNested ? objectNested.object : shape.object,
+    subjectNested,
+    objectNested,
+  };
+}
+
+/**
+ * Resolve a triple's nested sub-triples using batch GraphQL queries.
+ * One query per depth level (max 4). Returns a recursive tree.
+ */
+export async function resolveTripleDeep(
+  rootDetails: TripleDetails,
+  maxDepth = 4,
+): Promise<{ subjectNested: ResolvedTripleShape | null; objectNested: ResolvedTripleShape | null }> {
+  const allTriples = new Map<string, { shape: ResolvedTripleShape; subjectId: string | null; objectId: string | null }>();
+
+  let candidateIds = [rootDetails.subject_id, rootDetails.object_id]
+    .filter(Boolean)
+    .map(String);
+
+  for (let depth = 0; depth < maxDepth && candidateIds.length > 0; depth++) {
+    const batch = await fetchTripleDetailsBatch(candidateIds);
+    const nextCandidates: string[] = [];
+
+    for (const t of batch) {
+      const termId = t.term_id ? String(t.term_id) : null;
+      if (!termId || allTriples.has(termId)) continue;
+
+      const shape = graphqlTripleToShape(t);
+      const subjectId = t.subject_id ? String(t.subject_id) : null;
+      const objectId = t.object_id ? String(t.object_id) : null;
+      allTriples.set(termId, { shape, subjectId, objectId });
+
+      for (const childId of [subjectId, objectId]) {
+        if (childId && !allTriples.has(childId)) {
+          nextCandidates.push(childId);
+        }
+      }
+    }
+
+    candidateIds = [...new Set(nextCandidates)];
+  }
+
+  function buildTree(atomId: string | null): ResolvedTripleShape | null {
+    if (!atomId) return null;
+    const entry = allTriples.get(atomId);
+    if (!entry) return null;
+    const subjectNested = buildTree(entry.subjectId);
+    const objectNested = buildTree(entry.objectId);
+    return {
+      ...entry.shape,
+      subject: subjectNested ? subjectNested.subject : entry.shape.subject,
+      object: objectNested ? objectNested.object : entry.shape.object,
+      subjectNested,
+      objectNested,
+    };
+  }
+
+  return {
+    subjectNested: buildTree(rootDetails.subject_id ? String(rootDetails.subject_id) : null),
+    objectNested: buildTree(rootDetails.object_id ? String(rootDetails.object_id) : null),
   };
 }

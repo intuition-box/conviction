@@ -288,23 +288,21 @@ export async function runExtraction(inputText: string, options: ExtractionOption
     perSegment.push(item);
   }
 
-  if (options.searchFn) {
-    const atomResult = await runAtomMatchStage(perSegment, options.searchFn, atomMatchDeps);
-    llmCallCount += atomResult.llmCalls;
-  }
+  const [atomResult, stanceResult] = await Promise.all([
+    options.searchFn
+      ? runAtomMatchStage(perSegment, options.searchFn, atomMatchDeps)
+      : Promise.resolve({ llmCalls: 0 }),
+    runStanceStage(perSegment, parentContext ?? "", options.userStance, stanceDeps),
+  ]);
+  llmCallCount += atomResult.llmCalls + stanceResult.llmCalls;
 
   let parentFilterStats = { droppedUnrelated: 0, droppedDuplicate: 0 };
-  {
-    const stanceResult = await runStanceStage(perSegment, parentContext ?? "", options.userStance, stanceDeps);
-    llmCallCount += stanceResult.llmCalls;
-
-    if (parentContext) {
-      parentFilterStats = filterClaimsAgainstParent(perSegment, parentContext);
-      purgeOrphanContext(perSegment, nested, derivedTriples);
-      for (const item of perSegment) {
-        if (item.claims.length === 0) continue;
-        enforceRoles(item.claims, item.selectedSentence ?? item.sentence);
-      }
+  if (parentContext) {
+    parentFilterStats = filterClaimsAgainstParent(perSegment, parentContext);
+    purgeOrphanContext(perSegment, nested, derivedTriples);
+    for (const item of perSegment) {
+      if (item.claims.length === 0) continue;
+      enforceRoles(item.claims, item.selectedSentence ?? item.sentence);
     }
   }
 

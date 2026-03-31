@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getTripleDetails } from "@0xintuition/sdk";
 import { ensureIntuitionGraphql } from "@/lib/intuition";
 import { parseVaultMetrics } from "@/lib/intuition/metrics";
-import { mapTripleShape, resolveAtomLabel } from "@/lib/intuition/resolveTerm";
+import { atomLabel, mapTripleShape, resolveTripleDeep } from "@/lib/intuition/resolveTerm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ type TriplePageProps = {
  * GET /api/triples/[id]
  *
  * Returns the Subject-Predicate-Object data for a triple term ID
- * using the Intuition SDK. Resolves nested atoms (depth 1).
+ * using the Intuition SDK. Resolves nested atoms recursively (max depth 4).
  */
 export async function GET(request: Request, { params }: TriplePageProps) {
   const { id } = await params;
@@ -36,18 +36,22 @@ export async function GET(request: Request, { params }: TriplePageProps) {
 
     const base = mapTripleShape(details);
 
-    // Resolve nested atoms in parallel (subject + object only, predicate is never nested)
-    const [subjectResolved, objectResolved] = await Promise.all([
-      resolveAtomLabel(details.subject, details.subject_id ? String(details.subject_id) : null),
-      resolveAtomLabel(details.object, details.object_id ? String(details.object_id) : null),
-    ]);
+    // Resolve nested atoms recursively via batch GraphQL
+    const { subjectNested, objectNested } = await resolveTripleDeep(details);
+
+    const subjectLabel = subjectNested
+      ? `${subjectNested.subject} · ${subjectNested.predicate} · ${subjectNested.object}`
+      : atomLabel(details.subject);
+    const objectLabel = objectNested
+      ? `${objectNested.subject} · ${objectNested.predicate} · ${objectNested.object}`
+      : atomLabel(details.object);
 
     return NextResponse.json({
       triple: {
         id: base.termId || id,
-        subject: subjectResolved.label,
+        subject: subjectLabel,
         predicate: base.predicate,
-        object: objectResolved.label,
+        object: objectLabel,
         creator: details.creator?.label ?? details.creator_id ?? "Unknown",
         createdAt: details.created_at ?? null,
         marketCap: base.marketCap,
@@ -55,8 +59,8 @@ export async function GET(request: Request, { params }: TriplePageProps) {
         shares: base.shares,
         sharePrice: parseVaultMetrics(details.term?.vaults?.[0]).sharePrice,
         counterTermId: base.counterTermId,
-        subjectNested: subjectResolved.nestedTriple,
-        objectNested: objectResolved.nestedTriple,
+        subjectNested,
+        objectNested,
       },
     });
   } catch (error: unknown) {

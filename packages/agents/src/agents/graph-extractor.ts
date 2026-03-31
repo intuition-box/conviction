@@ -124,8 +124,7 @@ RECURSIVE SUBJECT/OBJECT:
   * Prepositional noun phrases: "reposts from TikTok" -> { "subject": "reposts", "predicate": "from", "object": "TikTok" }
   * Multi-level: "People who rely on AI for everyday decisions" ->
     { "subject": { "subject": "People", "predicate": "who rely on", "object": "AI" }, "predicate": "for", "object": "everyday decisions" }
-  * Consequence/infinitive: "misinformation fast enough to undermine democratic elections" ->
-    { "subject": "misinformation", "predicate": "fast enough to undermine", "object": "democratic elections" }
+  * Degree + infinitive: see DEGREE + INFINITIVE section below.
 - SYMMETRY: Apply recursive nesting to BOTH subject AND object independently.
   If the subject uses nesting, check whether the object also contains prepositional
   phrases or restrictive clauses — if so, nest it too.
@@ -159,6 +158,13 @@ COMPARATIVES (than / as...as):
 - "X is as ADJ as Y" -> predicate includes "is as ADJ as", object is Y.
 - NEVER strip "than" or comparative "as".
 
+SUPERLATIVES (the best / the worst / the most ADJ / the least ADJ):
+- "X is the best Y" -> predicate = "is the best", object = "Y".
+- "X is the worst Y" -> predicate = "is the worst", object = "Y".
+- "X is the most ADJ Y" -> predicate = "is the most ADJ", object = "Y".
+- "X is the least ADJ Y" -> predicate = "is the least ADJ", object = "Y".
+- The superlative adjective phrase stays in the predicate with the copula.
+
 DISCOURSE CONNECTORS (because, which is why, therefore, if, unless, so, etc.):
 - When the claim contains a discourse connector linking two sub-claims, the connector
   becomes the CORE PREDICATE and each sub-claim becomes a NESTED subject/object triple.
@@ -172,6 +178,18 @@ DISCOURSE CONNECTORS (because, which is why, therefore, if, unless, so, etc.):
   "Workers who depend on gig platforms deserve protections because X" → S=[Workers... | deserve | protections], NOT S=[Workers...].
 - Each nested S and O must have exactly 3 slots (subject, predicate, object).
 - Apply all other rules (nesting, denominalization, pronouns) inside each nested triple.
+
+DEGREE + INFINITIVE (too/enough ... to ...):
+- When a clause contains "too ADJ/much" or "ADJ enough" followed by "to VERB",
+  the part BEFORE "to VERB" is a standalone proposition — nest it as a sub-triple.
+  The "to VERB" becomes the predicate of the next nesting level.
+- "X verb too ADJ/much to VERB Y" →
+  S=[X | verb | too ADJ/much], P="to VERB", O=Y
+- "X is too ADJ to VERB Y" →
+  S=[X | is | too ADJ], P="to VERB", O=Y
+- Multi-level (degree + infinitive + prepositional condition):
+  "X verb too much to VERB Y without/for Z" →
+  S=[[X | verb | too much] | to VERB | Y], P="without/for", O=Z
 
 PREDICATE HYGIENE:
 - The predicate MUST be a verb phrase: verb (+ modal/negation + essential preposition).
@@ -232,6 +250,12 @@ Claim: "Bitcoin is a better store of value than gold."
 => { "core": { "subject": "Bitcoin", "predicate": "is a better store of value than", "object": "gold" },
      "modifiers": [] }
 
+--- SUPERLATIVE (keep superlative adjective in predicate) ---
+
+Claim: "Instagram is the best social media."
+=> { "core": { "subject": "Instagram", "predicate": "is the best", "object": "social media" },
+     "modifiers": [] }
+
 --- CAUSALITY (nest trailing preps into object) ---
 
 Claim: "Rent control makes housing shortages worse."
@@ -285,12 +309,32 @@ Claim: "We need policies that reduce carbon emissions."
        "object": { "subject": "policies", "predicate": "that reduce", "object": "carbon emissions" } },
      "modifiers": [] }
 
---- CONSEQUENCE (degree + infinitive in nested predicate) ---
+--- DEGREE + INFINITIVE (base claim = sub-triple, "to VERB" = next level) ---
 
-Claim: "Social media amplifies misinformation fast enough to undermine democratic elections."
-=> { "core": { "subject": "Social media", "predicate": "amplifies",
-       "object": { "subject": "misinformation", "predicate": "fast enough to undermine", "object": "democratic elections" } },
-     "modifiers": [] }
+Claim: "Misinformation spreads fast enough to undermine democratic elections."
+=> { "core": {
+       "subject": { "subject": "Misinformation", "predicate": "spreads", "object": "fast enough" },
+       "predicate": "to undermine",
+       "object": "democratic elections"
+     }, "modifiers": [] }
+
+Claim: "Bitcoin is too volatile to be a currency."
+=> { "core": {
+       "subject": { "subject": "Bitcoin", "predicate": "is", "object": "too volatile" },
+       "predicate": "to be",
+       "object": "a currency"
+     }, "modifiers": [] }
+
+Claim: "AI tools hallucinate too much to be trusted without human expertise."
+=> { "core": {
+       "subject": {
+         "subject": { "subject": "AI tools", "predicate": "hallucinate", "object": "too much" },
+         "predicate": "to be",
+         "object": "trusted"
+       },
+       "predicate": "without",
+       "object": "human expertise"
+     }, "modifiers": [] }
 
 --- RECURSIVE SUBJECT (restrictive clause -> nested triple) ---
 
