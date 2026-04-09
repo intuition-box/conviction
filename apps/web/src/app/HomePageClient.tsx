@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HotDebates } from "@/app/_components/TrendingScroll/TrendingScroll";
-import { FeedThread, type ReplyTarget } from "@/app/_components/FeedPost/FeedThread";
+import { DebateCard, type ReplyTarget } from "@/app/_components/DebateCard/DebateCard";
 import { HomeSidebar } from "@/app/_components/HomeSidebar/HomeSidebar";
 import { RightPanel } from "@/app/_components/RightPanel/RightPanel";
 import { Sheet } from "@/app/_components/Sheet/Sheet";
@@ -128,9 +128,19 @@ function InlineComposerBlock({
     composerFlow.flow.setStance(target.stance);
   }, [target.stance, composerFlow.flow.setStance]);
 
+  const placeholder =
+    target.stance === "SUPPORTS"
+      ? "Write a reply that supports this debate..."
+      : target.stance === "REFUTES"
+        ? "Write a reply that refutes this debate..."
+        : "Write your reply...";
+
   return (
     <ComposerBlock
       composerFlow={composerFlow}
+      hideHeader
+      inline
+      placeholder={placeholder}
       themeSlot={
         <ThemeRow
           selected={selectedThemes}
@@ -243,15 +253,13 @@ export function HomePageClient({ trending, feed, themes, loadMoreReplies }: Home
   function composerSlot(postId: string) {
     if (!replyTarget || replyTarget.postId !== postId) return null;
     return (
-      <div className={styles.inlineComposer}>
-        <InlineComposerBlock
-          key={postId}
-          target={replyTarget}
-          onClose={() => setReplyTarget(null)}
-          onPublishSuccess={handlePublishSuccess}
-          onCreateTheme={handleCreateTheme}
-        />
-      </div>
+      <InlineComposerBlock
+        key={postId}
+        target={replyTarget}
+        onClose={() => setReplyTarget(null)}
+        onPublishSuccess={handlePublishSuccess}
+        onCreateTheme={handleCreateTheme}
+      />
     );
   }
 
@@ -270,7 +278,7 @@ export function HomePageClient({ trending, feed, themes, loadMoreReplies }: Home
       <div className={styles.page}>
         <div className={styles.feedColumn}>
           {isMobile && <WeekVoteBanner />}
-          <HotDebates posts={trending} sentimentMap={sentimentMap} />
+          {isMobile && <HotDebates posts={trending} sentimentMap={sentimentMap} />}
 
           {/* Root composer — always visible at top of feed */}
           <div ref={rootComposerRef} className={styles.rootComposer}>
@@ -325,15 +333,15 @@ export function HomePageClient({ trending, feed, themes, loadMoreReplies }: Home
               <EmptyState title={themeFilter ? "No posts in this theme." : "No posts yet. Start a debate!"} />
             ) : (
               sortedFeed.map((post) => (
-                <FeedThread
+                <DebateCard
                   key={post.id}
                   post={post}
                   onBadgeClick={handleBadgeClick}
                   onReply={handleReply}
                   activeReplyMap={activeReplyMap}
                   composerSlot={composerSlot}
-                  loadMoreReplies={loadMoreReplies}
                   sentimentMap={sentimentMap}
+                  loadMoreReplies={loadMoreReplies}
                   onNewTripleIds={(ids) => setExtraTripleIds((prev) => [...prev, ...ids])}
                 />
               ))
@@ -341,7 +349,7 @@ export function HomePageClient({ trending, feed, themes, loadMoreReplies }: Home
           </div>
         </div>
 
-        <HomeSidebar themes={themes} />
+        <HomeSidebar themes={themes} trending={trending} sentimentMap={sentimentMap} />
       </div>
 
       {/* Desktop inspector — overlays the sidebar */}

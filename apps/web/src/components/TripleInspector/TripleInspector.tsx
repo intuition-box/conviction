@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { TripleInline } from "@/components/TripleInline/TripleInline";
 import { MiniTree } from "@/components/MiniTree/MiniTree";
-import { ReplyCard } from "@/app/_components/ReplyCard/ReplyCard";
+import { DebateCardView, type DebatePostData } from "@/app/_components/DebateCard/DebateCardView";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
 
 import styles from "./TripleInspector.module.css";
@@ -142,22 +142,24 @@ function RelatedSection({ title, posts }: { title: string; posts: RelatedPost[] 
     <section className={styles.section}>
       <h3 className={styles.sectionTitle}>{title} <span className={styles.count}>({posts.length})</span></h3>
       <div className={styles.postsList}>
-        {posts.map((p) => (
-          <div key={p.id} className={styles.relatedPostItem}>
-            <ReplyCard
-              id={p.id}
-              body={p.body}
-              createdAt={p.createdAt}
-              replyCount={p.replyCount}
-              author={p.author}
-              variant="compact"
-              mainTripleTermId={p.mainTripleTermId}
-            />
-            {p.sharedAtom && (
-              <p className={styles.sharedTopicHint}>Shared: {p.sharedAtom}</p>
-            )}
-          </div>
-        ))}
+        {posts.map((p) => {
+          const postData: DebatePostData = {
+            id: p.id,
+            body: p.body,
+            createdAt: p.createdAt,
+            user: p.author,
+            replyCount: p.replyCount,
+            mainTripleTermIds: [p.mainTripleTermId],
+          };
+          return (
+            <div key={p.id} className={styles.relatedPostItem}>
+              <DebateCardView post={postData} dense />
+              {p.sharedAtom && (
+                <p className={styles.sharedTopicHint}>Shared: {p.sharedAtom}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
