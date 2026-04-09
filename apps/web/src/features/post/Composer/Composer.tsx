@@ -5,7 +5,6 @@ import { Badge } from "@/components/Badge/Badge";
 import type { ReactNode } from "react";
 import type { Stance } from "@/features/post/ExtractionWorkspace/extraction";
 
-import { InfoHint } from "@/components/InfoHint/InfoHint";
 import { labels } from "@/lib/vocabulary";
 import styles from "./Composer.module.css";
 
@@ -26,6 +25,7 @@ type ComposerProps = {
   extraDisabledHint?: string;
   hideHeader?: boolean;
   placeholder?: string;
+  inline?: boolean;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -46,6 +46,36 @@ const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger"> 
   FAILED: "danger",
 };
 
+type HintArgs = {
+  message: string | null;
+  walletConnected: boolean;
+  extraDisabled?: boolean;
+  extraDisabledHint?: string;
+  inputText: string;
+  contextDirty: boolean;
+  inline?: boolean;
+  stance: Stance | "";
+};
+
+function computeHint({
+  message,
+  walletConnected,
+  extraDisabled,
+  extraDisabledHint,
+  inputText,
+  contextDirty,
+  inline,
+  stance,
+}: HintArgs): string {
+  if (message) return message;
+  if (!walletConnected) return labels.connectWalletToAnalyze;
+  if (extraDisabled && extraDisabledHint && inputText.length > 0) return extraDisabledHint;
+  if (contextDirty) return labels.contentChangedWarning;
+  if (inline && stance === "SUPPORTS") return "You're replying as supporting";
+  if (inline && stance === "REFUTES") return "You're replying as refuting";
+  return labels.composerHint;
+}
+
 export function Composer({
   stance,
   inputText,
@@ -63,9 +93,89 @@ export function Composer({
   extraDisabledHint,
   hideHeader,
   placeholder,
+  inline,
 }: ComposerProps) {
   const actionLabel = contextDirty ? "Re-submit" : "Submit";
   const disabled = busy || !walletConnected || !!extraDisabled;
+
+  const hint = computeHint({
+    message,
+    walletConnected,
+    extraDisabled,
+    extraDisabledHint,
+    inputText,
+    contextDirty,
+    inline,
+    stance,
+  });
+
+  const stanceClass = !inline && stance === "SUPPORTS"
+    ? styles.textareaSupports
+    : !inline && stance === "REFUTES"
+      ? styles.textareaRefutes
+      : "";
+
+  const textareaEl = (
+    <div className={styles.textareaWrap}>
+      <textarea
+        className={`${styles.textarea} ${inline ? styles.textareaInline : ""} ${stanceClass}`}
+        value={inputText}
+        maxLength={200}
+        onChange={(e) => onInputChange(e.target.value)}
+        placeholder={placeholder ?? "Write your text"}
+      />
+      <span className={`${styles.charCount} ${inputText.length >= 200 ? styles.charCountLimit : ""}`}>
+        {inputText.length}/200
+      </span>
+    </div>
+  );
+
+  const footerEl = (
+    <div className={styles.footer}>
+      <span className={styles.footerHint}>{hint}</span>
+      <div className={styles.footerActions}>
+        {(hideHeader || inline) && (
+          <button
+            type="button"
+            className={styles.cancelBtn}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        )}
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onExtract}
+          disabled={disabled}
+        >
+          {extracting ? (
+            <>
+              <span className={styles.spinner} aria-hidden="true" />
+              {labels.analyzingStatus}
+            </>
+          ) : (
+            actionLabel
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (inline) {
+    return (
+      <div className={styles.inline}>
+        <div className={styles.inlineArea}>
+          <div className={styles.inlineAvatar} aria-hidden="true" />
+          <div className={styles.inlineInputWrap}>
+            {themeSlot && <div className={styles.inlineThemeSlot}>{themeSlot}</div>}
+            {textareaEl}
+            {footerEl}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.composer}>
@@ -91,51 +201,9 @@ export function Composer({
 
       {themeSlot && <div className={styles.themeSlot}>{themeSlot}</div>}
 
-      <div className={styles.textareaWrap}>
-        <textarea
-          className={`${styles.textarea} ${stance === "SUPPORTS" ? styles.textareaSupports : stance === "REFUTES" ? styles.textareaRefutes : ""}`}
-          value={inputText}
-          maxLength={200}
-          onChange={(e) => onInputChange(e.target.value)}
-          placeholder={placeholder ?? "Write your text"}
-        />
-        <span className={`${styles.charCount} ${inputText.length >= 200 ? styles.charCountLimit : ""}`}>
-          {inputText.length}/200
-        </span>
-      </div>
-      {message
-        ? <InfoHint variant="warning">{message}</InfoHint>
-        : <InfoHint variant="tip">{labels.composerHint}</InfoHint>
-      }
+      {textareaEl}
 
-      <div className={styles.footer}>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onExtract}
-          disabled={disabled}
-        >
-          {extracting ? (
-            <>
-              <span className={styles.spinner} aria-hidden="true" />
-              {labels.analyzingStatus}
-            </>
-          ) : (
-            actionLabel
-          )}
-        </Button>
-        {contextDirty && (
-          <span className={styles.warning}>
-            {labels.contentChangedWarning}
-          </span>
-        )}
-        {!walletConnected && (
-          <span className={styles.warning}>{labels.connectWalletToAnalyze}</span>
-        )}
-        {walletConnected && extraDisabled && extraDisabledHint && inputText.length > 0 && (
-          <span className={styles.warning}>{extraDisabledHint}</span>
-        )}
-      </div>
+      {footerEl}
     </div>
   );
 }

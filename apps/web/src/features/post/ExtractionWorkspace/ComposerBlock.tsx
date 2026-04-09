@@ -13,9 +13,10 @@ type Props = {
   extraDisabledHint?: string;
   hideHeader?: boolean;
   placeholder?: string;
+  inline?: boolean;
 };
 
-export function ComposerBlock({ composerFlow, className, themeSlot, extraDisabled, extraDisabledHint, hideHeader, placeholder }: Props) {
+export function ComposerBlock({ composerFlow, className, themeSlot, extraDisabled, extraDisabledHint, hideHeader, placeholder, inline }: Props) {
   const {
     flow,
     composerOpen,
@@ -46,6 +47,7 @@ export function ComposerBlock({ composerFlow, className, themeSlot, extraDisable
             extraDisabledHint={extraDisabledHint}
             hideHeader={hideHeader}
             placeholder={placeholder}
+            inline={inline}
           />
         </section>
       )}

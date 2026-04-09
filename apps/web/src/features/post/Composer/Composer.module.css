@@ -1,7 +1,7 @@
 .composer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0;
 }
 
 .header {
@@ -14,13 +14,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.title {
-  margin: 0;
-  font-size: var(--font-size-small);
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .closeBtn {
@@ -44,43 +37,117 @@
 }
 
 .themeSlot {
-  margin-bottom: calc(-1 * var(--space-1));
+  margin-bottom: var(--space-2);
 }
 
 .textarea {
   width: 100%;
-  min-height: 72px;
-  padding: var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--bg-muted);
+  min-height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: var(--font-size-small);
-  line-height: var(--line-height-relaxed);
-  resize: vertical;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  resize: none;
+  transition: none;
 }
 
 .textarea::placeholder {
   color: var(--text-muted);
+  font-weight: 400;
 }
 
 .textarea:focus {
   outline: none;
-  border-color: var(--border-focus);
-  background: var(--bg-surface);
 }
 
 .footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
 }
 
-.warning {
-  font-size: var(--font-size-tiny);
-  color: var(--color-amber-700);
+.footerHint {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cancelBtn {
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-btn-irregular);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.cancelBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.inline {
+  width: 100%;
+}
+
+.inlineArea {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.inlineAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-avatar-irregular);
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.inlineInputWrap {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius-debate-inner);
+  background: var(--bg-inset);
+  padding: var(--space-3) var(--space-4);
+  transition: border-color var(--transition-fast);
+}
+
+.inlineInputWrap:focus-within {
+  border-color: var(--color-accent);
+}
+
+.inlineThemeSlot {
+  margin-bottom: var(--space-2);
+}
+
+.textareaInline {
+  font-size: 14px;
+  min-height: 36px;
 }
 
 .spinner {
