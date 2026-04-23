@@ -1,17 +1,19 @@
+// Atom display: single ring + compact number. Used by DebateCardView + SentimentBar.
+
 import styles from "./SentimentCircle.module.css";
 
 type SentimentCircleProps = {
   supportPct: number;
   totalParticipants: number;
-  mode?: "full" | "compact" | "micro";
+  mode?: "full" | "compact" | "micro" | "tiny";
 };
 
 const SUPPORT_COLOR = "var(--stance-supports-text)";
 const OPPOSE_COLOR = "var(--stance-refutes-text)";
 const EMPTY_COLOR = "var(--border-default)";
 
-const SIZES = { full: 52, compact: 32, micro: 22 } as const;
-const STROKES = { full: 4, compact: 3, micro: 2 } as const;
+const SIZES = { full: 52, compact: 32, micro: 22, tiny: 18 } as const;
+const STROKES = { full: 4, compact: 3, micro: 2, tiny: 4 } as const;
 
 export function SentimentCircle({
   supportPct,
@@ -35,6 +37,24 @@ export function SentimentCircle({
   const opposeLen = circumference - supportLen;
 
   const cls = [styles.wrapper, styles[mode]].filter(Boolean).join(" ");
+
+  // Tiny: CSS conic-gradient donut (matches PULSE preview) — no SVG, no inner text.
+  if (mode === "tiny") {
+    const supportColor = "var(--stance-supports-accent)";
+    const refutesColor = "var(--stance-refutes-accent)";
+    const border = "var(--border-default)";
+    const background = empty
+      ? border
+      : `conic-gradient(${supportColor} 0% ${clamped}%, ${refutesColor} ${clamped}% 100%)`;
+    return (
+      <span
+        className={`${styles.wrapper} ${styles.tiny}`}
+        aria-label={ariaLabel}
+        role="img"
+        style={{ background }}
+      />
+    );
+  }
 
   return (
     <div className={cls} aria-label={ariaLabel} role="img">
@@ -95,6 +115,7 @@ export function SentimentCircle({
       {(mode === "compact" || mode === "micro") && !empty && (
         <span className={styles.compactNumber}>{totalParticipants}</span>
       )}
+      {/* tiny mode: donut only, no inner text — caller renders % adjacent */}
     </div>
   );
 }

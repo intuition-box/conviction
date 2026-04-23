@@ -3,7 +3,8 @@ import styles from "./Avatar.module.css";
 type AvatarProps = {
   src?: string | null;
   name: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
+  shape?: "irregular" | "circular";
 };
 
 const PALETTE = [
@@ -28,8 +29,8 @@ function colorFromString(input: string): string {
   return PALETTE[idx];
 }
 
-export function Avatar({ src, name, size = "md" }: AvatarProps) {
-  const classes = [styles.avatar, styles[size]].join(" ");
+export function Avatar({ src, name, size = "md", shape = "irregular" }: AvatarProps) {
+  const classes = [styles.avatar, styles[size], styles[shape]].join(" ");
 
   if (src) {
     return (
