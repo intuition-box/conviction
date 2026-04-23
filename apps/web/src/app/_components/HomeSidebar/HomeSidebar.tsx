@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { ThemeBadge } from "@/components/ThemeBadge/ThemeBadge";
+import { Label } from "@/components/Label/Label";
 import { SearchBar } from "@/components/SearchBar/SearchBar";
 import type { ThemeSummary, TrendingPost } from "@/app/HomePageClient";
 import type { SentimentMap } from "@/hooks/useSentimentBatch";
@@ -28,7 +29,7 @@ export function HomeSidebar({ themes, trending = [], sentimentMap = {} }: HomeSi
       )}
 
       <section className={styles.section}>
-        <h3 className={`${styles.title} ${styles.titleCenter}`}>Global Perception</h3>
+        <Label size="sm" as="h3" className={styles.titleCenter}>Global Perception</Label>
         <WeekVote />
       </section>
 
@@ -36,7 +37,7 @@ export function HomeSidebar({ themes, trending = [], sentimentMap = {} }: HomeSi
 
       {themes.length > 0 && (
         <section className={styles.section}>
-          <h3 className={styles.title}>Themes</h3>
+          <Label size="sm" as="h3" className={styles.sectionTitle}>Themes</Label>
           <div className={styles.categoriesList}>
             {themes.map((cat) => (
               <Link key={cat.slug} href={`/themes/${cat.slug}`} className={styles.categoryLink}>
