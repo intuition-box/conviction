@@ -1,16 +1,17 @@
 .thread {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 8px;
 }
 
 .composerSlot {
-  background: var(--bg-debate-replies);
-  border: 1px solid var(--border-subtle);
-  border-top: none;
-  border-radius: 0 0 var(--radius-card-irregular);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.composerReplyWrap {
+  margin-top: 8px;
 }
 
 .composerSlot textarea {
@@ -20,69 +21,88 @@
 .repliesZone {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.replyGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin-left: var(--space-4);
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .subRepliesZone {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  margin-left: var(--space-4);
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.threadLine {
-  width: 2px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  margin-left: var(--space-4);
+/* Replies indented + rounded L-bend connector linking each to parent. */
+.replyWrap {
+  position: relative;
+  padding-left: 34px;
+}
+
+/* Rounded L — vertical comes from parent, curves into the card. */
+.replyWrap::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: -8px;
+  width: 20px;
+  height: 32px;
+  border: 0 solid var(--border-hover);
+  border-left-width: 1.5px;
+  border-bottom-width: 1.5px;
+  border-bottom-left-radius: 12px;
+  pointer-events: none;
+}
+
+/* Vertical continuation below the bend — hidden on last reply so the line stops. */
+.replyWrap:not([data-last="true"])::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 12px;
+  bottom: -8px;
+  width: 1.5px;
+  background: var(--border-hover);
+  pointer-events: none;
 }
 
 .showMore {
   align-self: flex-start;
-  padding: var(--space-2) var(--space-3);
+  padding: 2px 0;
   border: none;
   background: none;
-  font-family: inherit;
-  font-size: var(--font-size-small);
-  color: var(--color-accent);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-mono-sm);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   cursor: pointer;
-  text-decoration: none;
-  margin-left: var(--space-6);
-  margin-top: var(--space-2);
+  margin-left: 34px;
+  margin-top: var(--space-1);
+  transition: color var(--transition-fast);
 }
 
 .showMore:hover {
-  text-decoration: underline;
+  color: var(--text-primary);
 }
 
 .showMore:disabled {
   opacity: 0.5;
   cursor: default;
-  text-decoration: none;
 }
 
 @media (max-width: 768px) {
-  .replyGroup {
-    margin-left: var(--space-3);
+  .replyWrap {
+    padding-left: 22px;
   }
-
-  .subRepliesZone {
-    margin-left: var(--space-3);
+  .replyWrap::before {
+    left: 10px;
+    width: 14px;
   }
-
-  .threadLine {
-    margin-left: var(--space-3);
+  .replyWrap:not([data-last="true"])::after {
+    left: 10px;
   }
-
   .showMore {
-    margin-left: var(--space-3);
+    margin-left: 22px;
   }
 }

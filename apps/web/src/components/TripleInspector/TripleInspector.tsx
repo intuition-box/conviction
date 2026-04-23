@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { TripleInline } from "@/components/TripleInline/TripleInline";
 import { MiniTree } from "@/components/MiniTree/MiniTree";
-import { DebateCardView, type DebatePostData } from "@/app/_components/DebateCard/DebateCardView";
+import { DebateCardView, type DebatePostData } from "@/app/_components/DebateThread/DebateCardView";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
 
 import styles from "./TripleInspector.module.css";

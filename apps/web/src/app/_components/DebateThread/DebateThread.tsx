@@ -7,7 +7,20 @@ import type { SentimentMap } from "@/hooks/useSentimentBatch";
 import type { FeedPostData, FeedReplyPreview, LoadMoreRepliesFn } from "@/app/HomePageClient";
 
 import { DebateCardView, type DebatePostData } from "./DebateCardView";
-import styles from "./DebateCard.module.css";
+import styles from "./DebateThread.module.css";
+
+type ReplierUser = { displayName: string | null; address: string; avatar: string | null };
+
+function dedupeByAddress(users: ReplierUser[]): ReplierUser[] {
+  const seen = new Set<string>();
+  const out: ReplierUser[] = [];
+  for (const u of users) {
+    if (seen.has(u.address)) continue;
+    seen.add(u.address);
+    out.push(u);
+  }
+  return out;
+}
 
 export type ReplyTarget = {
   postId: string;
@@ -17,7 +30,7 @@ export type ReplyTarget = {
   stance: "SUPPORTS" | "REFUTES";
 };
 
-type DebateCardProps = {
+type DebateThreadProps = {
   post: FeedPostData;
   onBadgeClick?: (tripleTermIds: string[], postId: string) => void;
   onReply?: (target: ReplyTarget) => void;
@@ -28,7 +41,7 @@ type DebateCardProps = {
   onNewTripleIds?: (ids: string[]) => void;
 };
 
-export function DebateCard({
+export function DebateThread({
   post,
   onBadgeClick,
   onReply,
@@ -37,7 +50,7 @@ export function DebateCard({
   sentimentMap,
   loadMoreReplies,
   onNewTripleIds,
-}: DebateCardProps) {
+}: DebateThreadProps) {
   const [extraReplies, setExtraReplies] = useState<FeedReplyPreview[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(post.replyCount > post.replyPreviews.length);
@@ -87,12 +100,19 @@ export function DebateCard({
   const rootTripleId = post.mainTripleTermIds?.[0] ?? null;
   const hasReplies = allReplies.length > 0;
 
+  const rootLatestRepliers = dedupeByAddress(allReplies.map((r) => r.user))
+    .slice(0, 3)
+    .map((u) => ({
+      avatar: u.avatar,
+      name: u.displayName ?? u.address,
+      address: u.address,
+    }));
+
   return (
     <div className={styles.thread}>
       <DebateCardView
-        post={post}
+        post={{ ...post, latestRepliers: rootLatestRepliers }}
         sentimentData={getSentiment(rootTripleId)}
-        threadPosition={hasReplies ? "root" : "solo"}
         onBadgeClick={onBadgeClick}
         onReply={
           onReply
@@ -110,7 +130,9 @@ export function DebateCard({
       />
 
       {composerSlot?.(post.id) != null && (
-        <div className={styles.composerSlot}>{composerSlot(post.id)}</div>
+        <div className={`${styles.replyWrap} ${styles.composerReplyWrap}`} data-last="true">
+          <div className={styles.composerSlot}>{composerSlot(post.id)}</div>
+        </div>
       )}
 
       {hasReplies && (
@@ -128,16 +150,25 @@ export function DebateCard({
               stance: reply.stance,
               mainTripleTermIds: reply.mainTripleTermIds,
               themes: post.themes,
+              latestRepliers: dedupeByAddress((reply.subReplies ?? []).map((s) => s.user))
+                .slice(0, 3)
+                .map((u) => ({
+                  avatar: u.avatar,
+                  name: u.displayName ?? u.address,
+                  address: u.address,
+                })),
             };
 
             return (
-              <div key={reply.id} className={styles.replyGroup}>
-                <div className={styles.threadLine} />
+              <div
+                key={reply.id}
+                className={styles.replyWrap}
+                data-last={isLastReply ? "true" : "false"}
+              >
                 <DebateCardView
                   post={replyPostData}
                   stance={reply.stance ?? null}
                   sentimentData={getSentiment(replyTripleTermId)}
-                  threadPosition={isLastReply ? "replyLast" : "reply"}
                   onBadgeClick={onBadgeClick}
                   onReply={makeReplyHandler(reply.id, replyTripleTermId)}
                   activeReplyStance={activeReplyMap?.get(reply.id) ?? null}
@@ -165,13 +196,15 @@ export function DebateCard({
                       };
 
                       return (
-                        <div key={sub.id} className={styles.replyGroup}>
-                          <div className={styles.threadLine} />
+                        <div
+                          key={sub.id}
+                          className={styles.replyWrap}
+                          data-last={isLastSub ? "true" : "false"}
+                        >
                           <DebateCardView
                             post={subPostData}
                             stance={sub.stance ?? null}
                             sentimentData={getSentiment(subTripleTermId)}
-                            threadPosition={isLastSub ? "replyLast" : "reply"}
                             onBadgeClick={onBadgeClick}
                             onReply={makeReplyHandler(sub.id, subTripleTermId)}
                             activeReplyStance={activeReplyMap?.get(sub.id) ?? null}

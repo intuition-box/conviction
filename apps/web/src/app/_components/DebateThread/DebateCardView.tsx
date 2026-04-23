@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MessageSquare, Network } from "lucide-react";
 
 import { Avatar } from "@/components/Avatar/Avatar";
+import { Chip } from "@/components/Chip/Chip";
 import { ThemeBadge } from "@/components/ThemeBadge/ThemeBadge";
 import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { SentimentCircle } from "@/components/SentimentBar/SentimentCircle";
@@ -22,6 +23,7 @@ export type DebatePostData = {
   stance?: "SUPPORTS" | "REFUTES" | null;
   themes?: { slug: string; name: string }[];
   mainTripleTermIds?: string[];
+  latestRepliers?: { avatar: string | null; name: string; address: string }[];
 };
 
 export type DebateCardViewProps = {
@@ -33,7 +35,6 @@ export type DebateCardViewProps = {
   activeReplyStance?: "SUPPORTS" | "REFUTES" | null;
   linkTarget?: string;
   dense?: boolean;
-  threadPosition?: "solo" | "root" | "reply" | "replyLast";
 };
 
 export function DebateCardView({
@@ -45,7 +46,6 @@ export function DebateCardView({
   activeReplyStance,
   linkTarget,
   dense = false,
-  threadPosition = "solo",
 }: DebateCardViewProps) {
   const mainTripleTermId = post.mainTripleTermIds?.[0];
 
@@ -54,16 +54,9 @@ export function DebateCardView({
     stance === "REFUTES" ? styles.cardRefutes :
     styles.cardNeutral;
 
-  const positionClass =
-    threadPosition === "root" ? styles.posRoot :
-    threadPosition === "reply" ? styles.posReply :
-    threadPosition === "replyLast" ? styles.posReplyLast :
-    styles.posSolo;
-
   const cardClasses = [
     styles.card,
     stanceClass,
-    positionClass,
     dense ? styles.dense : "",
   ].filter(Boolean).join(" ");
 
@@ -88,65 +81,91 @@ export function DebateCardView({
               </ThemeBadge>
             </span>
           )}
-          {sentimentData && (
-            <span className={styles.headerSentiment}>
-              <SentimentCircle
-                supportPct={sentimentData.supportPct}
-                totalParticipants={sentimentData.totalParticipants}
-                mode={dense ? "micro" : "compact"}
-              />
-            </span>
-          )}
         </header>
         <p className={styles.body}>{post.body}</p>
       </Link>
 
       <div className={styles.actions}>
-        <div className={`${styles.countReplyZone} ${onReply ? styles.hasSwap : ""} ${activeReplyStance ? styles.swapLocked : ""}`}>
-          <span className={`${styles.replyCount} ${post.replyCount > 0 ? styles.hasReplies : ""}`}>
-            <MessageSquare size={12} />
-            {post.replyCount} {post.replyCount === 1 ? "reply" : "replies"}
+        {sentimentData && (
+          <span className={styles.footerSentiment}>
+            <SentimentCircle
+              supportPct={sentimentData.supportPct}
+              totalParticipants={sentimentData.totalParticipants}
+              mode="tiny"
+            />
+            <span className={styles.sentimentPct}>
+              {Math.round(sentimentData.supportPct)}%
+            </span>
           </span>
-          {onReply && (
-            <div className={styles.replyBtns}>
-              <button
-                type="button"
-                className={`${styles.replyBtn} ${styles.replyBtnSupport} ${activeReplyStance === "SUPPORTS" ? styles.replyBtnActive : ""}`}
-                onClick={() => onReply("SUPPORTS")}
-                aria-label="Support this post"
-              >
-                Support
-              </button>
-              <button
-                type="button"
-                className={`${styles.replyBtn} ${styles.replyBtnRefute} ${activeReplyStance === "REFUTES" ? styles.replyBtnActive : ""}`}
-                onClick={() => onReply("REFUTES")}
-                aria-label="Refute this post"
-              >
-                Refute
-              </button>
-            </div>
-          )}
-        </div>
+        )}
         {mainTripleTermId && (
-          <span className={styles.thumbRight}>
+          <span className={styles.thumbSlot}>
             <ConnectedThumbVote
               tripleTermId={mainTripleTermId}
               sentimentData={sentimentData ?? null}
               size="sm"
+              variant="inline"
             />
           </span>
         )}
-        {post.mainTripleTermIds && post.mainTripleTermIds.length > 0 && onBadgeClick && (
-          <button
-            type="button"
-            className={styles.structureBtn}
-            onClick={() => onBadgeClick(post.mainTripleTermIds!, post.id)}
-            aria-label="View structure"
+        {post.replyCount > 0 && (
+          <span
+            className={[
+              styles.replyCount,
+              post.latestRepliers && post.latestRepliers.length > 0 ? styles.withRepliers : "",
+            ].filter(Boolean).join(" ")}
           >
-            <Network size={12} />
-          </button>
+            {post.latestRepliers && post.latestRepliers.length > 0 ? (
+              <span className={styles.replierStack} aria-hidden="true">
+                {post.latestRepliers.slice(0, 3).map((r) => (
+                  <span key={r.address} className={styles.replierChip} title={r.name}>
+                    <Avatar src={r.avatar} name={r.name} size="xs" shape="circular" />
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <MessageSquare size={12} />
+            )}
+            <span className={styles.replyCountText}>
+              {post.replyCount} <span className={styles.replyLabel}>{post.replyCount === 1 ? "reply" : "replies"}</span>
+            </span>
+          </span>
         )}
+
+        <span className={styles.actionsRight}>
+          {onReply && (
+            <>
+              <Chip
+                tone="supports"
+                size="md"
+                active={activeReplyStance === "SUPPORTS"}
+                onClick={() => onReply("SUPPORTS")}
+                aria-label="Support this post"
+              >
+                Support
+              </Chip>
+              <Chip
+                tone="refutes"
+                size="md"
+                active={activeReplyStance === "REFUTES"}
+                onClick={() => onReply("REFUTES")}
+                aria-label="Refute this post"
+              >
+                Refute
+              </Chip>
+            </>
+          )}
+          {post.mainTripleTermIds && post.mainTripleTermIds.length > 0 && onBadgeClick && (
+            <button
+              type="button"
+              className={styles.structureBtn}
+              onClick={() => onBadgeClick(post.mainTripleTermIds!, post.id)}
+              aria-label="View structure"
+            >
+              <Network size={12} />
+            </button>
+          )}
+        </span>
       </div>
     </article>
   );

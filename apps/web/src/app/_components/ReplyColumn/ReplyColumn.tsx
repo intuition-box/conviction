@@ -1,4 +1,4 @@
-import { DebateCardView, type DebatePostData } from "@/app/_components/DebateCard/DebateCardView";
+import { DebateCardView, type DebatePostData } from "@/app/_components/DebateThread/DebateCardView";
 import type { SentimentMap } from "@/hooks/useSentimentBatch";
 import type { ReplyNode } from "@/lib/types/reply";
 
