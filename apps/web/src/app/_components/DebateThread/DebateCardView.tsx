@@ -8,6 +8,7 @@ import { Chip } from "@/components/Chip/Chip";
 import { ThemeBadge } from "@/components/ThemeBadge/ThemeBadge";
 import { ConnectedThumbVote } from "@/components/ThumbVote";
 import { SentimentCircle } from "@/components/SentimentBar/SentimentCircle";
+import { UserPopover } from "@/components/UserPopover/UserPopover";
 import type { SentimentData } from "@/hooks/useSentimentBatch";
 import { authorLabel } from "@/lib/format/author";
 import { formatPostDate } from "../FeedPost/helpers";
@@ -62,15 +63,21 @@ export function DebateCardView({
 
   return (
     <article className={cardClasses}>
-      <Link
-        href={`/posts/${post.id}`}
-        className={styles.mainLink}
-        target={linkTarget}
-        rel={linkTarget === "_blank" ? "noopener noreferrer" : undefined}
-      >
+      <div className={styles.main}>
+        <Link
+          href={`/posts/${post.id}`}
+          className={styles.mainLink}
+          aria-label={`Open post by ${authorLabel(post.user)}`}
+          target={linkTarget}
+          rel={linkTarget === "_blank" ? "noopener noreferrer" : undefined}
+        />
         <header className={styles.header}>
-          <Avatar src={post.user.avatar} name={authorLabel(post.user)} size="sm" />
-          <cite className={styles.author}>{authorLabel(post.user)}</cite>
+          <UserPopover address={post.user.address}>
+            <button type="button" className={styles.authorTrigger}>
+              <Avatar src={post.user.avatar} name={authorLabel(post.user)} size="sm" />
+              <cite className={styles.author}>{authorLabel(post.user)}</cite>
+            </button>
+          </UserPopover>
           <time className={styles.time} dateTime={post.createdAt} suppressHydrationWarning>
             {formatPostDate(post.createdAt)}
           </time>
@@ -83,7 +90,7 @@ export function DebateCardView({
           )}
         </header>
         <p className={styles.body}>{post.body}</p>
-      </Link>
+      </div>
 
       <footer className={styles.actions}>
         {sentimentData && (
