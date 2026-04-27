@@ -92,9 +92,8 @@ export function Sidebar() {
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
-      <Link href="/" className={styles.logo}>
-        <span className={styles.logoMark}>DM</span>
-        {!collapsed && <span className={styles.logoText}>Debate Market</span>}
+      <Link href="/" className={styles.logo} aria-label="PULSE">
+        <span className={styles.logoText}>{collapsed ? "P" : "PULSE"}</span>
       </Link>
 
       <nav className={styles.nav}>

@@ -14,7 +14,7 @@ import { useSessionAuth } from "@/features/post/ExtractionWorkspace/hooks/useSes
 import { OnboardingGuard } from "@/features/onboarding/OnboardingGuard";
 
 const config = getDefaultConfig({
-  appName: "Debate Market",
+  appName: "PULSE",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
   chains: [intuitionTestnet],
   ssr: true,

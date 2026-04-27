@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/EmptyState/EmptyState";
 import { useComposerFlow } from "@/features/post/ExtractionWorkspace/hooks/useComposerFlow";
 import { ComposerBlock } from "@/features/post/ExtractionWorkspace/ComposerBlock";
 import { useToast } from "@/components/Toast/ToastContext";
-import { DebateCardView, type DebatePostData } from "@/app/_components/DebateCard/DebateCardView";
+import { DebateCardView, type DebatePostData } from "@/app/_components/DebateThread/DebateCardView";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 import styles from "./page.module.css";
 
@@ -78,7 +78,7 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
         </div>
       </section>
 
-      <ComposerBlock composerFlow={composerFlow} className={styles.composerSection} placeholder="Start a debate" />
+      <ComposerBlock composerFlow={composerFlow} className={styles.composerSection} placeholder="Drop a claim worth debating…" />
 
       <section className={styles.postsSection}>
         {filteredPosts.length === 0 ? (

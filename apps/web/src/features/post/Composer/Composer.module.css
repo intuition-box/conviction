@@ -4,6 +4,50 @@
   gap: 0;
 }
 
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-avatar-irregular);
+  background: linear-gradient(135deg, #5B7FFF, #C2E0FF);
+  flex-shrink: 0;
+}
+
+.headInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.footThemes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.footActions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -27,7 +71,7 @@
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--font-size-small);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
@@ -36,24 +80,21 @@
   color: var(--text-primary);
 }
 
-.themeSlot {
-  margin-bottom: var(--space-2);
-}
-
 .textarea {
   width: 100%;
-  min-height: 42px;
+  min-height: 28px;
   padding: 0;
   border: none;
   border-radius: 0;
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: var(--font-size-debate-body);
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 28px;
   resize: none;
   transition: none;
+  display: block;
 }
 
 .textarea::placeholder {
@@ -65,30 +106,13 @@
   outline: none;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: 11px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-}
-
 .footerHint {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--text-muted);
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.footerActions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
 }
 
 .cancelBtn {
@@ -97,7 +121,7 @@
   background: none;
   color: var(--text-muted);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--font-size-tiny);
   font-weight: 600;
   cursor: pointer;
   border-radius: var(--radius-btn-irregular);
@@ -107,47 +131,6 @@
 .cancelBtn:hover {
   color: var(--text-primary);
   background: var(--bg-hover);
-}
-
-.inline {
-  width: 100%;
-}
-
-.inlineArea {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-}
-
-.inlineAvatar {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-avatar-irregular);
-  background: var(--color-accent);
-  flex-shrink: 0;
-}
-
-.inlineInputWrap {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--card-radius-debate-inner);
-  background: var(--bg-inset);
-  padding: var(--space-3) var(--space-4);
-  transition: border-color var(--transition-fast);
-}
-
-.inlineInputWrap:focus-within {
-  border-color: var(--color-accent);
-}
-
-.inlineThemeSlot {
-  margin-bottom: var(--space-2);
-}
-
-.textareaInline {
-  font-size: 14px;
-  min-height: 36px;
 }
 
 .spinner {
@@ -165,7 +148,7 @@
 }
 
 .stanceHint {
-  font-size: 0.6rem;
+  font-size: var(--font-size-mono-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -197,10 +180,12 @@
   color: var(--color-amber-700);
 }
 
-.textareaSupports {
+.composerSupports {
   border-left: 3px solid var(--stance-supports-accent);
+  padding-left: var(--space-3);
 }
 
-.textareaRefutes {
+.composerRefutes {
   border-left: 3px solid var(--stance-refutes-accent);
+  padding-left: var(--space-3);
 }

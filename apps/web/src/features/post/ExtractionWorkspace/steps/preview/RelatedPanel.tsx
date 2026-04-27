@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { DebateCardView, type DebatePostData } from "@/app/_components/DebateCard/DebateCardView";
+import { DebateCardView, type DebatePostData } from "@/app/_components/DebateThread/DebateCardView";
 import { labels } from "@/lib/vocabulary";
 
 import type { DuplicateInfo } from "../../hooks/useDuplicateCheck";

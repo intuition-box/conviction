@@ -25,7 +25,6 @@ type ComposerProps = {
   extraDisabledHint?: string;
   hideHeader?: boolean;
   placeholder?: string;
-  inline?: boolean;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -53,8 +52,6 @@ type HintArgs = {
   extraDisabledHint?: string;
   inputText: string;
   contextDirty: boolean;
-  inline?: boolean;
-  stance: Stance | "";
 };
 
 function computeHint({
@@ -64,15 +61,11 @@ function computeHint({
   extraDisabledHint,
   inputText,
   contextDirty,
-  inline,
-  stance,
 }: HintArgs): string {
   if (message) return message;
   if (!walletConnected) return labels.connectWalletToAnalyze;
   if (extraDisabled && extraDisabledHint && inputText.length > 0) return extraDisabledHint;
   if (contextDirty) return labels.contentChangedWarning;
-  if (inline && stance === "SUPPORTS") return "You're replying as supporting";
-  if (inline && stance === "REFUTES") return "You're replying as refuting";
   return labels.composerHint;
 }
 
@@ -93,9 +86,8 @@ export function Composer({
   extraDisabledHint,
   hideHeader,
   placeholder,
-  inline,
 }: ComposerProps) {
-  const actionLabel = contextDirty ? "Re-submit" : "Submit";
+  const actionLabel = contextDirty ? "Re-publish" : "Publish";
   const disabled = busy || !walletConnected || !!extraDisabled;
 
   const hint = computeHint({
@@ -105,80 +97,35 @@ export function Composer({
     extraDisabledHint,
     inputText,
     contextDirty,
-    inline,
-    stance,
   });
+  const showHint = !!message || !walletConnected || !!extracting || contextDirty;
+  const showCharCount = inputText.length > 0;
+  const showCancel = hideHeader && (inputText.length > 0 || busy || !!extracting);
 
-  const stanceClass = !inline && stance === "SUPPORTS"
-    ? styles.textareaSupports
-    : !inline && stance === "REFUTES"
-      ? styles.textareaRefutes
-      : "";
+  const stanceClass =
+    stance === "SUPPORTS" ? styles.composerSupports :
+    stance === "REFUTES" ? styles.composerRefutes :
+    "";
 
   const textareaEl = (
     <div className={styles.textareaWrap}>
       <textarea
-        className={`${styles.textarea} ${inline ? styles.textareaInline : ""} ${stanceClass}`}
+        className={styles.textarea}
         value={inputText}
         maxLength={200}
         onChange={(e) => onInputChange(e.target.value)}
         placeholder={placeholder ?? "Write your text"}
       />
-      <span className={`${styles.charCount} ${inputText.length >= 200 ? styles.charCountLimit : ""}`}>
-        {inputText.length}/200
-      </span>
+      {showCharCount && (
+        <span className={`${styles.charCount} ${inputText.length >= 200 ? styles.charCountLimit : ""}`}>
+          {inputText.length}/200
+        </span>
+      )}
     </div>
   );
-
-  const footerEl = (
-    <div className={styles.footer}>
-      <span className={styles.footerHint}>{hint}</span>
-      <div className={styles.footerActions}>
-        {(hideHeader || inline) && (
-          <button
-            type="button"
-            className={styles.cancelBtn}
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-        )}
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onExtract}
-          disabled={disabled}
-        >
-          {extracting ? (
-            <>
-              <span className={styles.spinner} aria-hidden="true" />
-              {labels.analyzingStatus}
-            </>
-          ) : (
-            actionLabel
-          )}
-        </Button>
-      </div>
-    </div>
-  );
-
-  if (inline) {
-    return (
-      <div className={styles.inline}>
-        <div className={styles.inlineArea}>
-          <div className={styles.inlineAvatar} aria-hidden="true" />
-          <div className={styles.inlineInputWrap}>
-            {themeSlot && <div className={styles.inlineThemeSlot}>{themeSlot}</div>}
-            {textareaEl}
-            {footerEl}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className={styles.composer}>
+    <div className={`${styles.composer} ${stanceClass}`}>
       {!hideHeader && (
         <div className={styles.header}>
           <div className={styles.headerLeft}>
@@ -199,11 +146,32 @@ export function Composer({
         </div>
       )}
 
-      {themeSlot && <div className={styles.themeSlot}>{themeSlot}</div>}
+      <div className={styles.head}>
+        <span className={styles.avatar} aria-hidden="true" />
+        <div className={styles.headInput}>{textareaEl}</div>
+      </div>
 
-      {textareaEl}
-
-      {footerEl}
+      <div className={styles.foot}>
+        {themeSlot && <div className={styles.footThemes}>{themeSlot}</div>}
+        <div className={styles.footActions}>
+          {showHint && <span className={styles.footerHint}>{hint}</span>}
+          {showCancel && (
+            <button type="button" className={styles.cancelBtn} onClick={onClose}>
+              Cancel
+            </button>
+          )}
+          <Button variant="primary" size="sm" onClick={onExtract} disabled={disabled}>
+            {extracting ? (
+              <>
+                <span className={styles.spinner} aria-hidden="true" />
+                {labels.analyzingStatus}
+              </>
+            ) : (
+              actionLabel
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

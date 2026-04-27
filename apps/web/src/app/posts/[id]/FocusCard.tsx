@@ -17,6 +17,7 @@ type FocusCardProps = {
     body: string;
     tripleLinks: { termId: string; role: string }[];
   };
+  stance?: "SUPPORTS" | "REFUTES" | null;
   themes: ThemeItem[];
   onAddTheme?: (theme: ThemeItem) => Promise<boolean>;
   onLinkAtom?: (atom: { id: string; label: string }) => void;
@@ -30,6 +31,7 @@ type FocusCardProps = {
 
 export function FocusCard({
   post,
+  stance,
   themes,
   onAddTheme,
   onLinkAtom,
@@ -40,6 +42,10 @@ export function FocusCard({
   thumbSlot,
   children,
 }: FocusCardProps) {
+  const stanceClass =
+    stance === "SUPPORTS" ? styles.cardSupports :
+    stance === "REFUTES" ? styles.cardRefutes :
+    styles.cardNeutral;
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +73,7 @@ export function FocusCard({
   }
 
   return (
-    <section className={styles.card}>
+    <section className={`${styles.card} ${stanceClass}`}>
       <div className={styles.themeRow}>
         {themes.map((t) => (
           <ThemeBadge key={t.slug} slug={t.slug}>{t.name}</ThemeBadge>
@@ -101,7 +107,7 @@ export function FocusCard({
           </div>
         )}
       </div>
-      <p className={styles.body}>{post.body}</p>
+      <h1 className={styles.body}>{post.body}</h1>
       {thumbSlot}
       {children}
       {onOpenInspector && post.tripleLinks.length > 0 && (

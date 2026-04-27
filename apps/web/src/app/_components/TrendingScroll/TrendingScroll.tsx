@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Flame, MessageSquare } from "lucide-react";
 
 import { ThemeBadge } from "@/components/ThemeBadge/ThemeBadge";
+import { Label } from "@/components/Label/Label";
 import type { TrendingPost } from "@/app/HomePageClient";
 import type { SentimentMap } from "@/hooks/useSentimentBatch";
 import styles from "./TrendingScroll.module.css";
@@ -47,10 +48,16 @@ export function HotDebates({ posts, sentimentMap, variant = "scroll" }: HotDebat
 
   return (
     <section className={`${styles.section} ${isCompact ? styles.sectionCompact : ""}`}>
-      <h2 className={`${styles.title} ${isCompact ? styles.titleCompact : ""}`}>
-        <Flame size={isCompact ? 14 : 16} />
-        Hot Debates
-      </h2>
+      {isCompact ? (
+        <Label size="sm" as="h3" className={styles.titleCompact}>
+          Hot debates
+        </Label>
+      ) : (
+        <h2 className={styles.title}>
+          <Flame size={16} />
+          Hot Debates
+        </h2>
+      )}
       <div className={isCompact ? styles.compactList : styles.scroll}>
         {hotPosts.map((post) => {
           const s = sentimentMap[post.mainTripleTermId!]!;
@@ -59,24 +66,16 @@ export function HotDebates({ posts, sentimentMap, variant = "scroll" }: HotDebat
           const isHot = s.supportPct >= 45 && s.supportPct <= 55;
 
           if (isCompact) {
+            const stanceClass =
+              s.supportPct > 55 ? styles.sup :
+              s.supportPct < 45 ? styles.ref :
+              "";
+            const voteCount = s.totalParticipants;
             return (
-              <Link key={post.id} href={`/posts/${post.id}`} className={styles.compactCard}>
-                <div className={styles.compactMeta}>
-                  {post.themes[0] && (
-                    <ThemeBadge size="sm" slug={post.themes[0].slug}>
-                      {post.themes[0].name}
-                    </ThemeBadge>
-                  )}
-                  <span className={styles.compactReplies}>
-                    {isHot && <Flame size={10} className={styles.hotIcon} />}
-                    <MessageSquare size={10} />
-                    {post.replyCount}
-                  </span>
-                </div>
+              <Link key={post.id} href={`/posts/${post.id}`} className={`${styles.compactCard} ${stanceClass}`}>
                 <p className={styles.compactBody}>{truncate(post.body, 90)}</p>
-                <div className={styles.ratioBar}>
-                  <div className={styles.ratioSupport} style={{ width: `${supportPct}%` }} />
-                  <div className={styles.ratioOppose} />
+                <div className={styles.compactMeta}>
+                  {voteCount} {voteCount === 1 ? "vote" : "votes"} · {post.replyCount} {post.replyCount === 1 ? "reply" : "replies"}
                 </div>
               </Link>
             );

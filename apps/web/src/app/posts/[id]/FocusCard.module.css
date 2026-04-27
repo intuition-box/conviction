@@ -7,6 +7,10 @@
   position: relative;
 }
 
+.cardSupports { border-left: 3px solid var(--stance-supports-accent); }
+.cardRefutes { border-left: 3px solid var(--stance-refutes-accent); }
+.cardNeutral { border-left: 1px solid var(--border-default); }
+
 .themeRow {
   display: flex;
   align-items: center;
@@ -49,7 +53,7 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-popover);
   padding: var(--space-2);
 }
 

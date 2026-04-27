@@ -33,36 +33,21 @@
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .sortButtons {
   display: flex;
   gap: var(--space-1);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 0;
+  scrollbar-width: none;
 }
 
-.sortBtn {
-  padding: var(--space-1) var(--space-2);
-  border: none;
-  border-radius: var(--radius-btn-irregular);
-  background: transparent;
-  font-family: inherit;
-  font-size: var(--font-size-tiny);
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
-
-.sortBtn:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
-.sortBtnActive {
-  color: var(--color-accent);
-  background: var(--color-accent-dim);
-  font-weight: 600;
-}
+.sortButtons::-webkit-scrollbar { display: none; }
 
 .themeSelect {
   padding: var(--space-1) var(--space-2);
@@ -73,26 +58,25 @@
   font-size: var(--font-size-tiny);
   color: var(--text-secondary);
   cursor: pointer;
-  max-width: 140px;
+  max-width: 120px;
+  min-width: 0;
 }
 
 .sortRight {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .sortBar { gap: var(--space-1-5); padding: var(--space-2); }
+  .themeSelect { max-width: 100px; }
 }
 
 .rootComposer {
-  padding: 14px 16px;
-  margin-bottom: var(--space-4);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card-irregular);
-  background: var(--bg-surface);
-  transition: border-color var(--transition-fast);
-}
-
-.rootComposer:focus-within {
-  border-color: var(--color-accent);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .feedList {
