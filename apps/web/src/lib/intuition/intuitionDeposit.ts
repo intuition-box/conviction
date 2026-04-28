@@ -1,11 +1,3 @@
-/**
- * Deposit helper for Intuition vaults.
- *
- * - `termId = tripleId` means a FOR position.
- * - `termId = calculateCounterTripleId(tripleId)` means an AGAINST position.
- * - `curveId` defaults to `1n` (linear); `2n` uses progressive.
- */
-
 import type { WriteConfig } from "@0xintuition/sdk";
 import { MultiVaultAbi, multiVaultGetGeneralConfig } from "@0xintuition/sdk";
 import type { Hex } from "viem";
@@ -25,21 +17,7 @@ export type DepositToTripleOutcome =
   | { ok: true; termId: TermId; txHash: TxHash; amount: bigint }
   | { ok: false; error: string };
 
-/**
- * Deposits ETH into an Intuition vault (triple).
- *
- * @param params.config - Wallet and public client configuration
- * @param params.termId - Vault ID to deposit into:
- *   - For FOR position: use tripleId directly
- *   - For AGAINST position: use calculateCounterTripleId(tripleId) from SDK
- * @param params.amount - Amount in wei to deposit (defaults to minimum deposit)
- * @param params.curveId - Bonding curve type (defaults to 1n = Linear):
- *   - 1n = LinearCurve (default)
- *   - 2n = OffsetProgressiveCurve
- * @param params.minShares - Minimum shares to receive (slippage protection, defaults to 0)
- *
- * @returns Transaction outcome with txHash if successful, or error message
- */
+// For AGAINST position, pass calculateCounterTripleId(tripleId) as termId.
 export async function depositToTripleMin(params: {
   config: WriteConfig;
   termId: string;

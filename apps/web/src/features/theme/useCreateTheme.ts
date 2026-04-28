@@ -11,7 +11,7 @@ import {
   eventParseAtomCreated,
 } from "@0xintuition/protocol";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { parseTxError } from "@/lib/getErrorMessage";
 import { useSessionAuth } from "@/features/post/ExtractionWorkspace/hooks/useSessionAuth";
 import { sdkWriteConfig, sdkReadConfig } from "@/features/post/ExtractionWorkspace/publish";
@@ -78,9 +78,9 @@ export function useCreateTheme(): UseCreateThemeReturn {
         }
 
         // Ensure correct chain
-        if (chainId !== intuitionTestnet.id) {
+        if (chainId !== intuitionMainnet.id) {
           try {
-            await switchChainAsync({ chainId: intuitionTestnet.id });
+            await switchChainAsync({ chainId: intuitionMainnet.id });
           } catch {
             setError("Please switch to the correct network.");
             return null;
@@ -94,7 +94,7 @@ export function useCreateTheme(): UseCreateThemeReturn {
           return null;
         }
 
-        const multivaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id) as Address;
+        const multivaultAddress = getMultiVaultAddressFromChainId(intuitionMainnet.id) as Address;
         const writeConfig = {
           walletClient: walletClient as WalletClient,
           publicClient: publicClient as PublicClient,

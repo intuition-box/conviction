@@ -9,7 +9,7 @@ import { makeLabelKey } from "@/lib/format/makeLabelKey";
 import { normalizeAtomLabel } from "@/features/post/ExtractionWorkspace/publish/config";
 import { validateSubmissionRequest } from "@/server/api/validateSubmission";
 import { searchAtomsServer, type ExactLookupConfig } from "@/lib/intuition/search";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,13 +17,13 @@ export const dynamic = "force-dynamic";
 /* ── Exact on-chain atom lookup config (read-only, no wallet needed) ── */
 
 const extractPublicClient = createPublicClient({
-  chain: intuitionTestnet,
+  chain: intuitionMainnet,
   transport: http(),
 });
 
 const exactLookupConfig: ExactLookupConfig = {
   publicClient: extractPublicClient,
-  multivaultAddress: getMultiVaultAddressFromChainId(intuitionTestnet.id) as Address,
+  multivaultAddress: getMultiVaultAddressFromChainId(intuitionMainnet.id) as Address,
   normalizeLabel: normalizeAtomLabel,
 };
 

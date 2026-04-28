@@ -104,7 +104,7 @@ Copy `apps/web/.env.example` to `apps/web/.env` and fill in the values:
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `SESSION_SECRET` | Random string, min 32 characters (required in production) |
-| `NEXT_PUBLIC_INTUITION_CHAIN_ID` | Intuition network chain ID (`13579` for testnet) |
+| `NEXT_PUBLIC_INTUITION_CHAIN_ID` | Intuition network chain ID (`1155` for mainnet) |
 | `NEXT_PUBLIC_INTUITION_GRAPHQL_URL` | Intuition GraphQL endpoint |
 | `GROQ_API_KEY` | Groq API key |
 | `GROQ_MODEL` | Groq model name |

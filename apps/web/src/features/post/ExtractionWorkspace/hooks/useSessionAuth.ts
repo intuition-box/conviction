@@ -5,7 +5,7 @@ import { useAccount, useWalletClient } from "wagmi";
 
 import { getErrorMessage } from "@/lib/getErrorMessage";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 
 function generateNonce(): string {
   const bytes = new Uint8Array(8);
@@ -72,7 +72,7 @@ export function useSessionAuth({ setMessage }: UseSessionAuthParams) {
       return false;
     }
 
-    const activeChainId = intuitionTestnet.id;
+    const activeChainId = intuitionMainnet.id;
 
     // If we already established a session for this wallet, skip (within TTL)
     const cached = sessionRef.current;

@@ -12,7 +12,7 @@ import {
   multiVaultMultiCallIntuitionConfigs,
 } from "@0xintuition/protocol";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { HAS_TAG_ATOM_ID } from "@/lib/intuition/protocolAtoms";
 import { parseTxError } from "@/lib/getErrorMessage";
 import { useSessionAuth } from "@/features/post/ExtractionWorkspace/hooks/useSessionAuth";
@@ -72,9 +72,9 @@ export function useAddPostTheme(): UseAddPostThemeReturn {
     setIsAdding(true);
 
     try {
-      if (chainId !== intuitionTestnet.id) {
+      if (chainId !== intuitionMainnet.id) {
         try {
-          await switchChainAsync({ chainId: intuitionTestnet.id });
+          await switchChainAsync({ chainId: intuitionMainnet.id });
         } catch {
           setError("Please switch to the correct network.");
           return null;
@@ -116,7 +116,7 @@ export function useAddPostTheme(): UseAddPostThemeReturn {
         const o = asHexId(resolvedAtomTermId);
 
         if (s && p && o) {
-          const multivaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id) as Address;
+          const multivaultAddress = getMultiVaultAddressFromChainId(intuitionMainnet.id) as Address;
           const writeConfig = {
             walletClient: walletClient as WalletClient,
             publicClient: publicClient as PublicClient,

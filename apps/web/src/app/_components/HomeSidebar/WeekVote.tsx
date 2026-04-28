@@ -5,7 +5,7 @@ import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClien
 import { getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
 import { X } from "lucide-react";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { intuitionGraphqlUrl } from "@/lib/intuition/intuition";
 import { voteOnTriple } from "@/lib/intuition/intuitionVote";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
@@ -106,7 +106,7 @@ function useWeekVote(config: WeekVoteConfig) {
   const [counts, setCounts] = useState({ a: 0, b: 0 });
 
   const minDepositRef = useRef<bigint | null>(null);
-  const correctChain = chainId === intuitionTestnet.id;
+  const correctChain = chainId === intuitionMainnet.id;
 
   // Fetch counts + user position for both options
   const fetchData = useCallback(async () => {
@@ -164,7 +164,7 @@ function useWeekVote(config: WeekVoteConfig) {
     // Switch chain if needed
     if (!correctChain) {
       try {
-        await switchChainAsync({ chainId: intuitionTestnet.id });
+        await switchChainAsync({ chainId: intuitionMainnet.id });
       } catch {
         addToast("Failed to switch network", "error");
         setBusy(false);
@@ -180,7 +180,7 @@ function useWeekVote(config: WeekVoteConfig) {
     }
 
     const tripleTermId = side === "a" ? config.optionA.tripleTermId : config.optionB.tripleTermId;
-    const addr = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+    const addr = getMultiVaultAddressFromChainId(intuitionMainnet.id);
 
     const result = await voteOnTriple({
       config: { walletClient, publicClient, address: addr },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Stance } from "../extraction";
 import { useExtractionFlow } from "./useExtractionFlow";
@@ -30,13 +30,19 @@ export function useComposerFlow({
     if (autoOpen) setComposerOpen(true);
   }, [autoOpen]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const isRootComposer = parentPostId === null;
+
   const handlePublishSuccess = useCallback(
     (postId: string) => {
       setDialogOpen(false);
-      setComposerOpen(false);
+      if (isRootComposer) {
+        flowRef.current?.setInputText("");
+      } else {
+        setComposerOpen(false);
+      }
       onPublishSuccess(postId);
     },
-    [onPublishSuccess],
+    [onPublishSuccess, isRootComposer],
   );
 
   const flow = useExtractionFlow({
@@ -46,6 +52,9 @@ export function useComposerFlow({
     onPublishSuccess: handlePublishSuccess,
     parentClaim,
   });
+
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
 
   const { setStance, runExtraction } = flow;
 

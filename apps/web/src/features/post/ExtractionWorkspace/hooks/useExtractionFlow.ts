@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 
 import { atomKeyFromLabel } from "@db/agents";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { normalizeLabelForChain } from "@/lib/format/normalizeLabel";
 import { labels } from "@/lib/vocabulary";
 
@@ -626,7 +626,7 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
     setStance,
     stanceRequired,
     walletConnected: isConnected,
-    correctChain: chainId === intuitionTestnet.id,
+    correctChain: chainId === intuitionMainnet.id,
     switchToCorrectChain: publish.switchToCorrectChain,
     extractionJob,
     proposals,

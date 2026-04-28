@@ -113,6 +113,15 @@
   color: var(--stance-refutes-text);
 }
 
+/* ── Empty state ────────────────────────────────────────────────────── */
+
+.emptyState {
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* ── Add button ─────────────────────────────────────────────────────── */
 
 .addBtn {

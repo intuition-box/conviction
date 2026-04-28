@@ -5,7 +5,7 @@ import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClien
 import { getMultiVaultAddressFromChainId, calculateCounterTripleId } from "@0xintuition/sdk";
 
 import { ThumbVote } from "./ThumbVote";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { voteOnTriple, redeemVote } from "@/lib/intuition/intuitionVote";
 import { queryMaxRedeem } from "@/lib/intuition/intuitionRedeem";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
@@ -65,7 +65,7 @@ export function ConnectedThumbVote({
   const minDepositRef = useRef<bigint | null>(null);
   const prevAddressRef = useRef<string | undefined>(address);
 
-  const correctChain = chainId === intuitionTestnet.id;
+  const correctChain = chainId === intuitionMainnet.id;
 
   // ── Sync from sentimentData props ──
   useEffect(() => {
@@ -152,7 +152,7 @@ export function ConnectedThumbVote({
     // Switch chain if needed
     if (!correctChain) {
       try {
-        await switchChainAsync({ chainId: intuitionTestnet.id });
+        await switchChainAsync({ chainId: intuitionMainnet.id });
       } catch {
         addToast("Failed to switch network", "error");
         setBusy(false);
@@ -161,7 +161,7 @@ export function ConnectedThumbVote({
       }
     }
 
-    const addr = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+    const addr = getMultiVaultAddressFromChainId(intuitionMainnet.id);
     const config = { walletClient, publicClient, address: addr };
 
     const prevFor = forCount;

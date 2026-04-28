@@ -7,14 +7,18 @@ export type RankingConfig = {
   themeAtomTermId: string | null;
 };
 
-const IS_THE_BEST = "0x85627132c7f8c72197b10ca2ea5884cd2f6d2cfa50a13740602d3d58b0a60cc8";
-const SOCIAL_MEDIA_ATOM = "0x61001780bbeadd1fae3a434e7eb37de7deeea3329187bf4e2058b0c33369ccc4";
+const IS_THE_BEST = "0x9801897b84be4bd6b059b9c0bbd6882ef461c771861ffd500c285561d455af3e";
+const SOCIAL_MEDIA_ATOM = "0x71ab7105ca0f9b8e2ad1c39016eb642e638f92f7ba3ae9b82ae11b2e794b5a9a";
 
 export const RANKINGS: RankingConfig[] = [
-  { slug: "social-media", label: "Social Media", predicateTermId: IS_THE_BEST, objectTermId: SOCIAL_MEDIA_ATOM, themeSlug: "social-media", themeAtomTermId: SOCIAL_MEDIA_ATOM },
-  { slug: "ai", label: "AI", predicateTermId: IS_THE_BEST, objectTermId: "TODO", themeSlug: "technology", themeAtomTermId: null },
-  { slug: "car", label: "Car", predicateTermId: IS_THE_BEST, objectTermId: "TODO", themeSlug: "car", themeAtomTermId: null },
-  { slug: "breakfast", label: "Breakfast", predicateTermId: IS_THE_BEST, objectTermId: "TODO", themeSlug: "food", themeAtomTermId: null },
+  {
+    slug: "social-media",
+    label: "Social Media",
+    predicateTermId: IS_THE_BEST,
+    objectTermId: SOCIAL_MEDIA_ATOM,
+    themeSlug: "social-media",
+    themeAtomTermId: SOCIAL_MEDIA_ATOM,
+  },
 ];
 
 export const FEATURED_RANKING = RANKINGS[0];

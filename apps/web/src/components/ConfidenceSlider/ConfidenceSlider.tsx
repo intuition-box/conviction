@@ -34,7 +34,7 @@ export type ConfidenceSliderProps = {
 export function ConfidenceSlider({
   onConfirm,
   busy = false,
-  symbol = "tTRUST",
+  symbol = "TRUST",
   min: _min = 1,
   max = 10,
   existingDirection = null,

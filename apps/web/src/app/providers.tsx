@@ -8,7 +8,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { ToastProvider } from "@/components/Toast/ToastContext";
 import { useSessionAuth } from "@/features/post/ExtractionWorkspace/hooks/useSessionAuth";
 import { OnboardingGuard } from "@/features/onboarding/OnboardingGuard";
@@ -16,7 +16,7 @@ import { OnboardingGuard } from "@/features/onboarding/OnboardingGuard";
 const config = getDefaultConfig({
   appName: "PULSE",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
-  chains: [intuitionTestnet],
+  chains: [intuitionMainnet],
   ssr: true,
 });
 

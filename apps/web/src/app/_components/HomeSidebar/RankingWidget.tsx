@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Trophy, Plus } from "lucide-react";
 
 import { ConnectedThumbVote } from "@/components/ThumbVote/ConnectedThumbVote";
-import { ThumbVote } from "@/components/ThumbVote/ThumbVote";
 import { AtomSuggestionInput } from "@/components/AtomSuggestionInput/AtomSuggestionInput";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 import { intuitionGraphqlUrl } from "@/lib/intuition/intuition";
@@ -25,7 +24,7 @@ type RankingCandidate = {
 type SortedCandidate = {
   key: string;
   label: string;
-  tripleTermId: string | null;
+  tripleTermId: string;
   postId: string | null;
   forCount: number;
   againstCount: number;
@@ -37,11 +36,6 @@ function useRankingCandidates(config: RankingConfig) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (config.predicateTermId === "TODO" || config.objectTermId === "TODO") {
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
     (async () => {
       try {
@@ -102,16 +96,7 @@ function useRankingCandidates(config: RankingConfig) {
   return { candidates, loading };
 }
 
-const MOCK: SortedCandidate[] = [
-  { key: "tiktok", label: "TikTok", tripleTermId: null, postId: null, forCount: 12, againstCount: 4, rank: 1 },
-  { key: "instagram", label: "Instagram", tripleTermId: null, postId: null, forCount: 9, againstCount: 6, rank: 2 },
-  { key: "youtube", label: "YouTube", tripleTermId: null, postId: null, forCount: 8, againstCount: 3, rank: 3 },
-  { key: "twitter", label: "X (Twitter)", tripleTermId: null, postId: null, forCount: 5, againstCount: 7, rank: 4 },
-  { key: "snapchat", label: "Snapchat", tripleTermId: null, postId: null, forCount: 3, againstCount: 5, rank: 5 },
-];
-
 export function RankingWidget({ config }: { config: RankingConfig }) {
-  const isMock = config.predicateTermId === "TODO";
   const { candidates, loading } = useRankingCandidates(config);
   const router = useRouter();
   const { addToast } = useToast();
@@ -157,7 +142,6 @@ export function RankingWidget({ config }: { config: RankingConfig }) {
   }
 
   const sorted: SortedCandidate[] = useMemo(() => {
-    if (isMock) return MOCK;
     return candidates
       .map((c) => {
         const s = sentimentMap[c.tripleTermId];
@@ -174,10 +158,11 @@ export function RankingWidget({ config }: { config: RankingConfig }) {
       .sort((a, b) => (b.forCount - b.againstCount) - (a.forCount - a.againstCount))
       .slice(0, 10)
       .map((c, i) => ({ ...c, rank: i + 1 }));
-  }, [isMock, candidates, sentimentMap]);
+  }, [candidates, sentimentMap]);
 
   if (loading) return null;
-  if (!isMock && sorted.length === 0 && !addOpen) return null;
+
+  const isEmpty = sorted.length === 0;
 
   return (
     <div className={styles.widget}>
@@ -186,6 +171,12 @@ export function RankingWidget({ config }: { config: RankingConfig }) {
         <Trophy size={14} />
         The best {config.label} is...
       </h3>
+
+      {isEmpty && !addOpen && (
+        <p className={styles.emptyState}>
+          No candidates yet. Add the first one to start the ranking.
+        </p>
+      )}
 
       <div className={styles.list}>
         {sorted.map((item) => {
@@ -214,37 +205,25 @@ export function RankingWidget({ config }: { config: RankingConfig }) {
               <span className={`${styles.netScore} ${netScore >= 0 ? styles.netScorePositive : styles.netScoreNegative}`}>
                 {netScore >= 0 ? `+${netScore}` : netScore}
               </span>
-              {item.tripleTermId ? (
-                <ConnectedThumbVote
-                  tripleTermId={item.tripleTermId}
-                  sentimentData={sentimentMap[item.tripleTermId] ?? null}
-                  size="sm"
-                  onVoteSuccess={() => {
-                    addToast(
-                      "Vote registered!",
-                      "success",
-                      item.postId ? { label: "Say why", href: `/posts/${item.postId}` } : undefined,
-                      6000,
-                    );
-                  }}
-                />
-              ) : (
-                <ThumbVote
-                  forCount={item.forCount}
-                  againstCount={item.againstCount}
-                  userDirection={null}
-                  onVote={() => {}}
-                  busy={false}
-                  disabled
-                  size="sm"
-                />
-              )}
+              <ConnectedThumbVote
+                tripleTermId={item.tripleTermId}
+                sentimentData={sentimentMap[item.tripleTermId] ?? null}
+                size="sm"
+                onVoteSuccess={() => {
+                  addToast(
+                    "Vote registered!",
+                    "success",
+                    item.postId ? { label: "Say why", href: `/posts/${item.postId}` } : undefined,
+                    6000,
+                  );
+                }}
+              />
             </div>
           );
         })}
       </div>
 
-      {!isMock && !addOpen && (
+      {!addOpen && (
         <button
           type="button"
           className={styles.addBtn}
@@ -254,7 +233,7 @@ export function RankingWidget({ config }: { config: RankingConfig }) {
         </button>
       )}
 
-      {!isMock && addOpen && (
+      {addOpen && (
         <div className={styles.addSection}>
           <AtomSuggestionInput
             id="ranking-add-candidate"
