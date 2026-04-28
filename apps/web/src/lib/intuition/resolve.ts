@@ -4,7 +4,7 @@ import { createPublicClient, http, type Address } from "viem";
 import { findTripleIds, getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
 import { multiVaultMultiCallIntuitionConfigs } from "@0xintuition/protocol";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { ensureIntuitionGraphql, intuitionGraphqlUrl } from "@/lib/intuition";
 import { fetchAtomsByWhere } from "@/lib/intuition/graphql-queries";
 import { makeTripleKey } from "@/lib/format/makeTripleKey";
@@ -18,11 +18,11 @@ export async function readMultivaultConfig(): Promise<{
   atomCost: string;
 }> {
   const publicClient = createPublicClient({
-    chain: intuitionTestnet,
+    chain: intuitionMainnet,
     transport: http(),
   });
 
-  const multivaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id) as Address;
+  const multivaultAddress = getMultiVaultAddressFromChainId(intuitionMainnet.id) as Address;
   const config = await multiVaultMultiCallIntuitionConfigs({
     address: multivaultAddress,
     publicClient,

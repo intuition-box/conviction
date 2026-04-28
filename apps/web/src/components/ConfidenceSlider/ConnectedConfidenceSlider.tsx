@@ -6,7 +6,7 @@ import { getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
 import { formatEther, parseEther } from "viem";
 
 import { ConfidenceSlider, type ConfidenceSliderResult } from "./ConfidenceSlider";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { voteOnTriple } from "@/lib/intuition/intuitionVote";
 import { fetchJsonWithTimeout } from "@/lib/net/fetchWithTimeout";
 import { parseTxError } from "@/lib/getErrorMessage";
@@ -54,9 +54,9 @@ export function ConnectedConfidenceSlider({
   const [existingDirection, setExistingDirection] = useState<"support" | "oppose" | null>(null);
   const [sliderResetKey, setSliderResetKey] = useState(0);
 
-  const correctChain = chainId === intuitionTestnet.id;
+  const correctChain = chainId === intuitionMainnet.id;
   const walletReady = isConnected && walletClient && publicClient && correctChain;
-  const sym = intuitionTestnet.nativeCurrency.symbol;
+  const sym = intuitionMainnet.nativeCurrency.symbol;
   const busy = actionStatus === "pending";
 
   // Load min deposit
@@ -106,7 +106,7 @@ export function ConnectedConfidenceSlider({
     setActionMsg(null);
 
     if (!correctChain) {
-      try { await switchChainAsync({ chainId: intuitionTestnet.id }); }
+      try { await switchChainAsync({ chainId: intuitionMainnet.id }); }
       catch { setActionMsg("Failed to switch network."); setActionStatus("error"); return; }
     }
 
@@ -117,7 +117,7 @@ export function ConnectedConfidenceSlider({
       return;
     }
 
-    const addr = getMultiVaultAddressFromChainId(intuitionTestnet.id);
+    const addr = getMultiVaultAddressFromChainId(intuitionMainnet.id);
     const res = await voteOnTriple({
       config: { walletClient, publicClient, address: addr },
       tripleTermId,

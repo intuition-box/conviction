@@ -9,7 +9,7 @@ import { searchAtomsServer, searchTriplesServer, type ExactLookupConfig } from "
 import type { AtomResult, TripleResult, SearchResultsPayload } from "@/lib/intuition/types";
 import { createPublicClient, http, type Address } from "viem";
 import { getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { normalizeAtomLabel } from "@/features/post/ExtractionWorkspace/publish/config";
 import { NextResponse } from "next/server";
 import { getRefineStreamConfig, type RefineProposal } from "@db/agents/refine";
@@ -23,13 +23,13 @@ export const dynamic = "force-dynamic";
 /* ── Exact on-chain atom lookup config (read-only, no wallet needed) ── */
 
 const refinePublicClient = createPublicClient({
-  chain: intuitionTestnet,
+  chain: intuitionMainnet,
   transport: http(),
 });
 
 const exactLookupConfig: ExactLookupConfig = {
   publicClient: refinePublicClient,
-  multivaultAddress: getMultiVaultAddressFromChainId(intuitionTestnet.id) as Address,
+  multivaultAddress: getMultiVaultAddressFromChainId(intuitionMainnet.id) as Address,
   normalizeLabel: normalizeAtomLabel,
 };
 

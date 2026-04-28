@@ -1,6 +1,6 @@
 import { createPublicClient, http, type Hex } from "viem";
 import { getMultiVaultAddressFromChainId, MultiVaultAbi, calculateCounterTripleId } from "@0xintuition/sdk";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { ensureIntuitionGraphql, intuitionGraphqlUrl } from "@/lib/intuition";
 
 // getVault returns: [totalAssets, totalShares, currentSharePrice, positionCount]
@@ -14,13 +14,13 @@ export type VaultSideStats = {
 
 export function getPublicClient() {
   return createPublicClient({
-    chain: intuitionTestnet,
+    chain: intuitionMainnet,
     transport: http(),
   });
 }
 
 export function getMultivaultAddress() {
-  return getMultiVaultAddressFromChainId(intuitionTestnet.id);
+  return getMultiVaultAddressFromChainId(intuitionMainnet.id);
 }
 
 export function getCounterVaultId(tripleId: Hex) {
@@ -60,7 +60,7 @@ export async function readVaultPair(
   };
 }
 
-/** Deduplicated participant count via GraphQL (single triple) */
+// Linear curve only (curve_id = 1) — progressive curve excluded by product decision.
 export async function fetchParticipantCounts(
   tripleId: string,
   counterVaultId: string,
@@ -73,11 +73,11 @@ export async function fetchParticipantCounts(
       query GetUniqueParticipants($termIdFor: String!, $termIdAgainst: String!) {
         forParticipants: positions(
           distinct_on: [account_id]
-          where: { vault: { term_id: { _eq: $termIdFor } }, shares: { _gt: "0" } }
+          where: { vault: { term_id: { _eq: $termIdFor }, curve_id: { _eq: "1" } }, shares: { _gt: "0" } }
         ) { account_id }
         againstParticipants: positions(
           distinct_on: [account_id]
-          where: { vault: { term_id: { _eq: $termIdAgainst } }, shares: { _gt: "0" } }
+          where: { vault: { term_id: { _eq: $termIdAgainst }, curve_id: { _eq: "1" } }, shares: { _gt: "0" } }
         ) { account_id }
       }
     `;
@@ -91,20 +91,11 @@ export async function fetchParticipantCounts(
       }),
     });
 
-    if (!countResponse.ok) {
-      throw new Error(`GraphQL HTTP ${countResponse.status}`);
-    }
+    if (!countResponse.ok) throw new Error(`GraphQL HTTP ${countResponse.status}`);
 
     const countData = await countResponse.json();
-
-    if (countData.errors) {
-      console.error("GraphQL errors (dedup):", countData.errors);
-      throw new Error("GraphQL returned errors");
-    }
-
-    if (!countData.data) {
-      throw new Error("GraphQL returned no data");
-    }
+    if (countData.errors) throw new Error("GraphQL returned errors");
+    if (!countData.data) throw new Error("GraphQL returned no data");
 
     return {
       forCount: (countData.data.forParticipants as unknown[])?.length ?? 0,
@@ -186,8 +177,8 @@ export async function fetchBatchParticipantCounts(
     const fragments = tripleIds.map((id, i) => {
       const counterId = counterIds[i];
       return `
-        for_${i}: positions(distinct_on: [account_id], where: { vault: { term_id: { _eq: "${id}" } }, shares: { _gt: "0" } }) { account_id }
-        against_${i}: positions(distinct_on: [account_id], where: { vault: { term_id: { _eq: "${counterId}" } }, shares: { _gt: "0" } }) { account_id }
+        for_${i}: positions(distinct_on: [account_id], where: { vault: { term_id: { _eq: "${id}" }, curve_id: { _eq: "1" } }, shares: { _gt: "0" } }) { account_id }
+        against_${i}: positions(distinct_on: [account_id], where: { vault: { term_id: { _eq: "${counterId}" }, curve_id: { _eq: "1" } }, shares: { _gt: "0" } }) { account_id }
       `;
     }).join("\n");
 

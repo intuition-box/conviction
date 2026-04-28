@@ -209,7 +209,6 @@ export async function resolveTagTriples(params: {
         args: [subjects as Hex[], predicates as Hex[], objects as Hex[], deposits],
         value: totalValue,
       });
-
     }
   } catch (error) {
     if (error instanceof PublishPipelineError) throw error;

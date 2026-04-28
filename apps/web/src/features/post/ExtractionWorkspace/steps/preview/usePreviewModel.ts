@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { normalizeLabelForChain } from "@/lib/format/normalizeLabel";
 import { labels } from "@/lib/vocabulary";
 import {
@@ -144,7 +144,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     switchToCorrectChain,
   } = inputs;
 
-  const currencySymbol = intuitionTestnet.nativeCurrency.symbol;
+  const currencySymbol = intuitionMainnet.nativeCurrency.symbol;
   const extractionComplete = Boolean(extractionJob && extractionJob.status !== "pending");
 
   const viewState: ViewState = publishedPosts.length > 0

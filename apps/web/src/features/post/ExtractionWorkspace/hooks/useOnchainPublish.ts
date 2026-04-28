@@ -5,7 +5,7 @@ import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.
 import type { Address, PublicClient, WalletClient } from "viem";
 import { getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
 
-import { intuitionTestnet } from "@/lib/chain";
+import { intuitionMainnet } from "@/lib/chain";
 import { ensureIntuitionGraphql } from "@/lib/intuition";
 import { labels } from "@/lib/vocabulary";
 import {
@@ -309,9 +309,9 @@ export function useOnchainPublish({
         return;
       }
 
-      if (chainId !== intuitionTestnet.id) {
+      if (chainId !== intuitionMainnet.id) {
         try {
-          await switchChainAsync({ chainId: intuitionTestnet.id });
+          await switchChainAsync({ chainId: intuitionMainnet.id });
         } catch {
           setPublishError("Please switch to the correct network.");
           await cancelPublish(extractionJob.id, idempotencyKey, "wrong_chain");
@@ -321,7 +321,7 @@ export function useOnchainPublish({
 
       ensureIntuitionGraphql();
 
-      const multivaultAddress = getMultiVaultAddressFromChainId(intuitionTestnet.id) as Address;
+      const multivaultAddress = getMultiVaultAddressFromChainId(intuitionMainnet.id) as Address;
       const ctx: PublishContext = {
         writeConfig: { walletClient, publicClient, multivaultAddress },
         accountAddress: address,
@@ -580,7 +580,7 @@ export function useOnchainPublish({
       };
       try {
         localStorage.setItem(
-          `dm_publish_intent_${extractionJob.id}`,
+          `dm_publish_intent_v2_${extractionJob.id}`,
           JSON.stringify({ ...confirmPayload, timestamp: Date.now() }),
         );
       } catch {
@@ -619,7 +619,7 @@ export function useOnchainPublish({
       }
 
       try {
-        localStorage.removeItem(`dm_publish_intent_${extractionJob.id}`);
+        localStorage.removeItem(`dm_publish_intent_v2_${extractionJob.id}`);
       } catch {
       }
 
@@ -662,7 +662,7 @@ export function useOnchainPublish({
 
   async function switchToCorrectChain() {
     try {
-      await switchChainAsync({ chainId: intuitionTestnet.id });
+      await switchChainAsync({ chainId: intuitionMainnet.id });
     } catch {
       setPublishError("Failed to switch network. Please switch manually.");
     }
