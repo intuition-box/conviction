@@ -150,7 +150,8 @@ export async function requireSiweAuth(request: Request) {
   const message = decodeMessage(messageHeader);
   const parsed = parseSiweMessage(message);
 
-  const host = new URL(request.url).host;
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost ?? new URL(request.url).host;
   if (parsed.domain !== host) {
     throw new Error("SIWE domain mismatch.");
   }
