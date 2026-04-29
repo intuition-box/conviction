@@ -22,8 +22,9 @@ export async function POST(request: Request) {
 
     const parsed = parseSiweMessage(body.message);
 
-    // Validate domain
-    const host = new URL(request.url).host;
+    // Validate domain — prefer X-Forwarded-Host for reverse proxies (Coolify, nginx, etc.)
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const host = forwardedHost ?? new URL(request.url).host;
     if (parsed.domain !== host) {
       return NextResponse.json({ error: "SIWE domain mismatch." }, { status: 403 });
     }
