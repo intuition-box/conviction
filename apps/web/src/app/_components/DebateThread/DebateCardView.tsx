@@ -36,6 +36,8 @@ export type DebateCardViewProps = {
   activeReplyStance?: "SUPPORTS" | "REFUTES" | null;
   linkTarget?: string;
   dense?: boolean;
+  /** When false, the entire interactive footer (thumb vote, reply chips, structure btn, reply count) is hidden. Default true. */
+  interactive?: boolean;
 };
 
 export function DebateCardView({
@@ -47,6 +49,7 @@ export function DebateCardView({
   activeReplyStance,
   linkTarget,
   dense = false,
+  interactive = true,
 }: DebateCardViewProps) {
   const mainTripleTermId = post.mainTripleTermIds?.[0];
 
@@ -92,6 +95,7 @@ export function DebateCardView({
         <p className={styles.body}>{post.body}</p>
       </div>
 
+      {interactive && (
       <footer className={styles.actions}>
         {sentimentData && (
           <span className={styles.footerSentiment}>
@@ -174,6 +178,7 @@ export function DebateCardView({
           )}
         </span>
       </footer>
+      )}
     </article>
   );
 }

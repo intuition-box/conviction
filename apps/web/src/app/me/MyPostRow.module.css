@@ -1,0 +1,52 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.replyTo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+  text-decoration: none;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.replyTo:hover {
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+}
+
+.replyToLabel {
+  flex-shrink: 0;
+}
+
+.replyToBody {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.statsRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  min-height: var(--space-5);
+}
+
+.statBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono-google);
+  font-size: var(--font-size-mono-sm);
+  color: var(--text-secondary);
+}
