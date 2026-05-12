@@ -20,6 +20,11 @@ import {
 } from "../extraction";
 import { buildExtractedTree } from "../extraction/treeBuild";
 import { treeLeavesMatch, findSubTreeMatch } from "./matchTree";
+import type { ThemeItem } from "@/features/theme/types";
+
+function themeEntryKey(t: ThemeItem): string {
+  return t.kind === "existing" ? `slug:${t.slug}` : `atom:${t.atomTermId}`;
+}
 
 const TIMEOUT_ATOMS = 12_000;
 const TIMEOUT_TRIPLES = 10_000;
@@ -85,7 +90,7 @@ type UseTripleResolutionParams = {
   /** Draft posts — needed for Phase 5 full-tree search. */
   draftPosts?: DraftPost[];
   /** Theme tags to check for existing metadata triples. */
-  themes?: { slug: string; name: string }[];
+  themes?: ThemeItem[];
   onTripleMatched?: (proposalId: string, tripleTermId: string, atoms?: TripleMatchAtoms) => void;
   onAtomResolved?: (proposalId: string, field: "sText" | "pText" | "oText", termId: string, canonicalLabel: string) => void;
   /** Called when Phase 5 finds an on-chain tree matching an extracted draft. */
@@ -539,13 +544,21 @@ async function resolveDerivedChain(params: {
 }
 
 async function resolveThemeAtoms(params: {
-  themes: { slug: string; name: string }[] | undefined;
+  themes: ThemeItem[] | undefined;
   fullAtomMap: Map<string, string>;
   signal: ResolutionSignal;
 }): Promise<{ themeAtomMap: Map<string, string> }> {
   const { themes, fullAtomMap, signal } = params;
+  // Keys are themeEntryKey(t) so callers look up the same key for both kinds.
   const themeAtomMap = new Map<string, string>();
   if (!themes?.length || !checkActive(signal)) return { themeAtomMap };
+
+  for (const t of themes) {
+    if (t.kind === "pending-atom") themeAtomMap.set(themeEntryKey(t), t.atomTermId);
+  }
+
+  const existingThemes = themes.filter((t): t is Extract<ThemeItem, { kind: "existing" }> => t.kind === "existing");
+  if (existingThemes.length === 0) return { themeAtomMap };
 
   try {
     const themeData = await fetchJsonWithTimeout<{
@@ -555,17 +568,17 @@ async function resolveThemeAtoms(params: {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slugs: themes.map((t) => t.slug) }),
+        body: JSON.stringify({ slugs: existingThemes.map((t) => t.slug) }),
       },
       TIMEOUT_ATOMS,
     );
     for (const t of themeData.themes) {
-      if (t.atomTermId) themeAtomMap.set(t.slug, t.atomTermId);
+      if (t.atomTermId) themeAtomMap.set(`slug:${t.slug}`, t.atomTermId);
     }
   } catch {
-    for (const theme of themes) {
+    for (const theme of existingThemes) {
       const fallbackId = fullAtomMap.get(normalizeText(theme.slug));
-      if (fallbackId) themeAtomMap.set(theme.slug, fallbackId);
+      if (fallbackId) themeAtomMap.set(`slug:${theme.slug}`, fallbackId);
     }
   }
 
@@ -636,7 +649,7 @@ async function resolveNestedPasses(params: {
 
 async function resolveMetadataTags(params: {
   draftPosts: DraftPost[] | undefined;
-  themes: { slug: string; name: string }[] | undefined;
+  themes: ThemeItem[] | undefined;
   themeAtomMap: Map<string, string>;
   nestedStatuses: Map<string, string>;
   nextStatuses: ApprovedTripleStatus[];
@@ -662,10 +675,11 @@ async function resolveMetadataTags(params: {
     if (!mainTermId) continue;
 
     for (const theme of themes) {
-      const themeAtomId = themeAtomMap.get(theme.slug);
+      const entryKey = themeEntryKey(theme);
+      const themeAtomId = themeAtomMap.get(entryKey);
       if (!themeAtomId) continue;
       const key = makeTripleKey(mainTermId, HAS_TAG_ATOM_ID, themeAtomId);
-      tagEntries.push({ key, metaKey: `tag-${draft.id}-${theme.slug}`, sId: mainTermId, pId: HAS_TAG_ATOM_ID, oId: themeAtomId });
+      tagEntries.push({ key, metaKey: `tag-${draft.id}-${entryKey}`, sId: mainTermId, pId: HAS_TAG_ATOM_ID, oId: themeAtomId });
     }
   }
 

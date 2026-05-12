@@ -28,7 +28,8 @@ export type TagInfo = {
   draftIndex: number;
   mainTarget: MainTarget;
   themeLabel: string;
-  themeSlug: string;
+  /** Stable key for status tracking ("slug:foo" | "atom:0x..."). */
+  entryKey: string;
 };
 
 export type ProtocolDetailsProps = {
@@ -105,7 +106,7 @@ export function ProtocolDetails({
 
   const stanceClaimCount = stanceTriples?.length ?? (stanceRequired ? draftPostCount : 0);
   const allTagCount = tagTriples?.length ?? tagTripleCount;
-  const existingTagCount = tagTriples?.filter((tt) => metadataTripleStatuses?.has(`tag-${draftPosts[tt.draftIndex]?.id}-${tt.themeSlug}`)).length ?? 0;
+  const existingTagCount = tagTriples?.filter((tt) => metadataTripleStatuses?.has(`tag-${draftPosts[tt.draftIndex]?.id}-${tt.entryKey}`)).length ?? 0;
   const effectiveTagCount = allTagCount - existingTagCount;
   const totalNewClaims = newClaimCount + stanceClaimCount + effectiveTagCount + totalContextCount;
   const newTermCost = costReady && atomCost ? atomCost * BigInt(newTermCount) : null;
@@ -320,7 +321,7 @@ export function ProtocolDetails({
                         />
                       </li>
                     ))}
-                    {tagTriples?.filter((tt) => !metadataTripleStatuses?.has(`tag-${draftPosts[tt.draftIndex]?.id}-${tt.themeSlug}`)).map((tt) => (
+                    {tagTriples?.filter((tt) => !metadataTripleStatuses?.has(`tag-${draftPosts[tt.draftIndex]?.id}-${tt.entryKey}`)).map((tt) => (
                       <li key={`tag-${tt.draftIndex}-${tt.themeLabel}`}>
                         <TripleInline
                           subject={
@@ -405,7 +406,7 @@ export function ProtocolDetails({
                     </li>
                   );
                 })}
-                {tagTriples?.filter((tt) => metadataTripleStatuses?.has(`tag-${draftPosts[tt.draftIndex]?.id}-${tt.themeSlug}`)).map((tt) => (
+                {tagTriples?.filter((tt) => metadataTripleStatuses?.has(`tag-${draftPosts[tt.draftIndex]?.id}-${tt.entryKey}`)).map((tt) => (
                   <li key={`tag-existing-${tt.draftIndex}-${tt.themeLabel}`}>
                     <TripleInline
                       subject={

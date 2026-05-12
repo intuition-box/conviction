@@ -242,7 +242,7 @@ export type ExtractionContext = {
 export type HexString = `0x${string}`;
 
 export type UseExtractionFlowParams = {
-  themes: { slug: string; name: string }[];
+  themes: import("@/features/theme/types").ThemeItem[];
   parentPostId: string | null;
   parentMainTripleTermId?: string | null;
   onPublishSuccess?: (postId: string) => void;

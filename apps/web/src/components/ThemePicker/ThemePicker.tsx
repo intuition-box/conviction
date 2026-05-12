@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { labels } from "@/lib/vocabulary";
 import { asNumber } from "@/lib/format/asNumber";
+import { getThemeKey, type ThemeItem } from "@/features/theme/types";
 import styles from "./ThemePicker.module.css";
 
 type ThemeOption = { slug: string; name: string };
@@ -16,13 +17,9 @@ type AtomSuggestion = {
 };
 
 type ThemePickerProps = {
-  /** Already selected themes (excluded from suggestions). */
-  selected: ThemeOption[];
-  /** Called when user picks an existing DB theme. */
+  selected: ThemeItem[];
   onPickTheme: (theme: ThemeOption) => void;
-  /** Called when user picks an Intuition atom (creates theme in DB with atomTermId). */
   onLinkAtom: (atom: { id: string; label: string }) => void;
-  /** Called when user clicks "Create new" (on-chain atom creation). */
   onCreateNew?: (name: string) => void;
   placeholder?: string;
   creating?: boolean;
@@ -115,27 +112,47 @@ export function ThemePicker({
   }, [trimmed]);
 
   const lowerQuery = trimmed.toLowerCase();
-  const selectedSlugs = useMemo(() => new Set(selected.map((t) => t.slug)), [selected]);
+  const selectedKeys = useMemo(() => new Set(selected.map(getThemeKey)), [selected]);
+  const selectedAtomTermIds = useMemo(
+    () =>
+      new Set(
+        selected
+          .filter((t): t is Extract<ThemeItem, { kind: "pending-atom" }> => t.kind === "pending-atom")
+          .map((t) => t.atomTermId),
+      ),
+    [selected],
+  );
+  const selectedNamesLower = useMemo(
+    () => new Set(selected.map((t) => t.name.toLowerCase())),
+    [selected],
+  );
 
   const filteredThemes = useMemo(
     () =>
       allThemes.filter(
         (t) =>
           (!lowerQuery || t.name.toLowerCase().includes(lowerQuery)) &&
-          !selectedSlugs.has(t.slug),
+          !selectedKeys.has(`slug:${t.slug}`),
       ),
-    [allThemes, lowerQuery, selectedSlugs],
+    [allThemes, lowerQuery, selectedKeys],
   );
 
-  const dbNames = useMemo(() => new Set(allThemes.map((t) => t.name.toLowerCase())), [allThemes]);
+  const dbNames = useMemo(
+    () => new Set([
+      ...allThemes.map((t) => t.name.toLowerCase()),
+      ...selectedNamesLower,
+    ]),
+    [allThemes, selectedNamesLower],
+  );
   const filteredAtoms = useMemo(
-    () => atomResults.filter((a) => !dbNames.has(a.label.toLowerCase())),
-    [atomResults, dbNames],
+    () => atomResults.filter((a) => !selectedAtomTermIds.has(a.id) && !dbNames.has(a.label.toLowerCase())),
+    [atomResults, dbNames, selectedAtomTermIds],
   );
 
   const exactMatch =
     allThemes.some((t) => t.name.toLowerCase() === lowerQuery) ||
-    atomResults.some((a) => a.label.toLowerCase() === lowerQuery);
+    atomResults.some((a) => a.label.toLowerCase() === lowerQuery) ||
+    selectedNamesLower.has(lowerQuery);
   const showCreate = trimmed.length >= 2 && !exactMatch && !searching && !!onCreateNew;
 
   const handlePickTheme = useCallback(

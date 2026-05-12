@@ -7,8 +7,9 @@ import { requireSiweAuth } from "@/server/auth/siwe";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { validateSemanticGuard } from "@/app/api/chat/refine/validate";
 import type { NestedEdgeContext } from "@/lib/validation/semanticRelevance";
-import { isValidDraftPost, type DraftPostPayload } from "./validation";
+import { isValidDraftPost, isValidPendingTheme, type DraftPostPayload, type PendingThemeInput } from "./validation";
 import { isStanceId } from "@/features/post/ExtractionWorkspace/extraction/idPrefixes";
+import { ensureThemeInTransaction } from "@/server/themes/ensureTheme";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       idempotencyKey,
       posts: rawPosts,
       themeSlugs: rawThemeSlugs,
+      pendingThemes: rawPendingThemes,
       tripleTxHash,
       nestedTxHash,
       stanceTxHash,
@@ -48,10 +50,27 @@ export async function POST(request: Request) {
       idempotencyKey?: string;
       posts?: unknown[];
       themeSlugs?: string[];
+      pendingThemes?: unknown[];
       tripleTxHash?: string | null;
       nestedTxHash?: string | null;
       stanceTxHash?: string | null;
     };
+
+    let pendingThemes: PendingThemeInput[] = [];
+    if (rawPendingThemes !== undefined) {
+      if (!Array.isArray(rawPendingThemes) || !rawPendingThemes.every(isValidPendingTheme)) {
+        return NextResponse.json(
+          { error: "Invalid pendingThemes payload." },
+          { status: 400 },
+        );
+      }
+      const seenAtoms = new Set<string>();
+      pendingThemes = (rawPendingThemes as PendingThemeInput[]).filter((pt) => {
+        if (seenAtoms.has(pt.atomTermId)) return false;
+        seenAtoms.add(pt.atomTermId);
+        return true;
+      });
+    }
 
     if (!submissionId || typeof submissionId !== "string") {
       return NextResponse.json({ error: "submissionId is required." }, { status: 400 });
@@ -218,13 +237,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // Resolve theme slugs: use payload themeSlugs if provided, fallback to submission.themeSlug
-    const effectiveThemeSlugs: string[] =
+    const rawSlugs: string[] =
       Array.isArray(rawThemeSlugs) && rawThemeSlugs.length > 0
         ? rawThemeSlugs.filter((s): s is string => typeof s === "string" && s.length > 0)
-        : [submission.themeSlug];
+        : submission.themeSlug != null ? [submission.themeSlug] : [];
 
     const result = await prisma.$transaction(async (tx) => {
+      // Materialize pending themes here so the Theme rows roll back if Post creation fails.
+      const materializedSlugs: string[] = [];
+      for (const pt of pendingThemes) {
+        const resolved = await ensureThemeInTransaction(tx, pt);
+        materializedSlugs.push(resolved.slug);
+      }
+
+      const effectiveThemeSlugs = Array.from(new Set([...rawSlugs, ...materializedSlugs]));
+
       const createdPosts: CreatedPostRecord[] = [];
 
       for (const draftPost of validPosts) {

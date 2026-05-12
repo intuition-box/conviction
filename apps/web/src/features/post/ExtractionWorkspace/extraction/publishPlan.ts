@@ -27,14 +27,31 @@ export type PublishPlanStanceEntry = {
   parentMainTripleTermId: string;
 };
 
-export type PublishPlanTagEntry = {
-  draftId: string;
-  draftIndex: number;
-  mainTarget: MainTarget;
-  mainProposalId: string | null;
-  themeSlug: string;
-  themeName: string;
-};
+export type PublishPlanTagEntry =
+  | {
+      draftId: string;
+      draftIndex: number;
+      mainTarget: MainTarget;
+      mainProposalId: string | null;
+      themeName: string;
+      kind: "existing";
+      themeSlug: string;
+    }
+  | {
+      draftId: string;
+      draftIndex: number;
+      mainTarget: MainTarget;
+      mainProposalId: string | null;
+      themeName: string;
+      kind: "pending-atom";
+      atomTermId: string;
+    };
+
+export function tagEntryKey(entry: PublishPlanTagEntry): string {
+  return entry.kind === "existing"
+    ? `slug:${entry.themeSlug}`
+    : `atom:${entry.atomTermId}`;
+}
 
 export type PublishPlanInput = {
   approvedProposals: ProposalDraft[];
@@ -43,7 +60,7 @@ export type PublishPlanInput = {
   mainRefByDraft: Map<string, MainRef | null>;
   parentPostId?: string | null;
   parentMainTripleTermId?: string | null;
-  themes: { slug: string; name: string }[];
+  themes: import("@/features/theme/types").ThemeItem[];
 };
 
 export type PublishPlan = {
@@ -228,14 +245,27 @@ export function buildPublishPlan(input: PublishPlanInput): PublishPlan {
     }
 
     for (const theme of themes) {
-      tagEntries.push({
-        draftId: draft.id,
-        draftIndex,
-        mainTarget,
-        mainProposalId: draft.mainProposalId,
-        themeSlug: theme.slug,
-        themeName: theme.name,
-      });
+      if (theme.kind === "existing") {
+        tagEntries.push({
+          draftId: draft.id,
+          draftIndex,
+          mainTarget,
+          mainProposalId: draft.mainProposalId,
+          themeName: theme.name,
+          kind: "existing",
+          themeSlug: theme.slug,
+        });
+      } else {
+        tagEntries.push({
+          draftId: draft.id,
+          draftIndex,
+          mainTarget,
+          mainProposalId: draft.mainProposalId,
+          themeName: theme.name,
+          kind: "pending-atom",
+          atomTermId: theme.atomTermId,
+        });
+      }
     }
   }
 

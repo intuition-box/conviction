@@ -8,6 +8,7 @@ import { atomKeyFromLabel } from "@db/agents";
 import { intuitionMainnet } from "@/lib/chain";
 import { normalizeLabelForChain } from "@/lib/format/normalizeLabel";
 import { labels } from "@/lib/vocabulary";
+import { isPending, toPendingTheme, type PendingTheme } from "@/features/theme/types";
 
 import {
   buildDerivedTripleDraftsFromApi,
@@ -66,8 +67,24 @@ async function searchOnChainTrees(
 }
 
 export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId, onPublishSuccess, parentClaim }: UseExtractionFlowParams) {
-  const themeSlug = themes[0]?.slug ?? "";
-  const themeSlugs = themes.map((t) => t.slug);
+  const resolvedThemes = useMemo(
+    () =>
+      themes
+        .filter((t): t is Extract<typeof t, { kind: "existing" }> => t.kind === "existing")
+        .map((t) => ({ slug: t.slug, name: t.name })),
+    [themes],
+  );
+  const pendingThemes = useMemo<PendingTheme[]>(
+    () =>
+      themes
+        .filter(isPending)
+        .map(toPendingTheme)
+        .filter((p): p is PendingTheme => p !== null),
+    [themes],
+  );
+  const themeNameForExtract = themes[0]?.name ?? "";
+  const themeSlugForExtract = themes[0]?.kind === "existing" ? themes[0].slug : undefined;
+  const themeSlugs = resolvedThemes.map((t) => t.slug);
   const router = useRouter();
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
@@ -229,7 +246,8 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              themeSlug: themeSlug,
+              themeName: themeNameForExtract,
+              themeSlug: themeSlugForExtract,
               inputText: normalizedInput,
               parentPostId: parentPostId,
               stance: normalizedStance,
@@ -454,11 +472,11 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
       if (dt.predicate) labels.push(dt.predicate);
       if (dt.object) labels.push(dt.object);
     }
-    for (const theme of themes) {
+    for (const theme of resolvedThemes) {
       labels.push(theme.slug);
     }
     return labels;
-  }, [visibleNestedProposals, derivedTriples, themes]);
+  }, [visibleNestedProposals, derivedTriples, resolvedThemes]);
 
   const rewriteDraftForTreeMatch = useCallback((draftId: string, tree: MatchedTree, termId: string) => {
     const draft = draftPosts.find((d) => d.id === draftId);
@@ -581,8 +599,9 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
     onPublishSuccess,
     visibleNestedProposals,
     proposals,
-    themes,
+    themes: resolvedThemes,
     themeSlugs,
+    pendingThemes,
     mainRefByDraft,
     derivedTriples,
     nestedRefLabels,
@@ -666,7 +685,8 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
     draftActions,
     publishOnchain: publish.publishOnchain,
     setBlockedDraftIds: publish.setBlockedDraftIds,
-    themes,
+    themes: resolvedThemes,
+    pendingThemes,
     parentClaim,
     parentMainTripleTermId: parentMainTripleTermId ?? null,
     updateNestedPredicate,

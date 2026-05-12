@@ -278,9 +278,9 @@ export async function POST(request: Request) {
   if (!result.ok) return result.response;
 
   const {
-    userId, themeSlug, trimmedInput,
+    userId, themeSlug, themeName, trimmedInput,
     normalizedParentPostId, normalizedStance,
-    theme, parentBody: parentClaimText,
+    parentBody: parentClaimText,
   } = result.data;
 
   const submission = await prisma.submission.create({
@@ -293,8 +293,6 @@ export async function POST(request: Request) {
       status: "EXTRACTING",
     },
   });
-
-  const themeName = theme.name;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

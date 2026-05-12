@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
 import { requireSiweAuth } from "@/server/auth/siwe";
 import { getErrorMessage } from "@/lib/getErrorMessage";
+import { ensureThemeInTransaction, toSlug } from "@/server/themes/ensureTheme";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,20 +36,10 @@ export async function GET() {
   });
 }
 
-// ─── Slug generation ──────────────────────────────────────────────────────────
-
-function toSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-async function createThemeWithUniqueSlug(
-  data: { name: string; description: string | null; atomTermId: string | null },
+// Legacy path: theme without an atom. No atomTermId race to worry about, just slug collision.
+// For atom-bearing themes use `ensureThemeInTransaction`.
+async function createThemeNoAtom(
+  data: { name: string; description: string | null },
 ) {
   const baseSlug = toSlug(data.name);
   if (!baseSlug) throw new Error("Name must produce a valid slug.");
@@ -57,15 +48,12 @@ async function createThemeWithUniqueSlug(
     const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
     try {
       return await prisma.theme.create({
-        data: { slug, name: data.name, description: data.description, atomTermId: data.atomTermId },
+        data: { slug, name: data.name, description: data.description, atomTermId: null },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         const target = (error.meta?.target as string[] | undefined) ?? [];
-        if (target.includes("slug")) {
-          continue; // slug collision — try next suffix
-        }
-        // Other unique constraint (e.g. atomTermId race) — re-throw
+        if (target.includes("slug")) continue;
         throw error;
       }
       throw error;
@@ -126,7 +114,6 @@ export async function POST(request: Request) {
       if (d.length > 0) trimmedDescription = d;
     }
 
-    let validatedAtomTermId: string | null = null;
     if (atomTermId != null && atomTermId !== "") {
       if (typeof atomTermId !== "string" || !HEX_ID_REGEX.test(atomTermId)) {
         return NextResponse.json(
@@ -134,20 +121,41 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+
       const existingTheme = await prisma.theme.findUnique({ where: { atomTermId } });
       if (existingTheme) {
+        // 409 includes `existing` so callers (notably the publish flow) can resolve
+        // the slug transparently instead of erroring.
         return NextResponse.json(
-          { error: `This atom is already linked to the theme "${existingTheme.name}".` },
+          {
+            error: `This atom is already linked to the theme "${existingTheme.name}".`,
+            existing: {
+              slug: existingTheme.slug,
+              name: existingTheme.name,
+              atomTermId: existingTheme.atomTermId,
+            },
+          },
           { status: 409 },
         );
       }
-      validatedAtomTermId = atomTermId;
+
+      const created = await prisma.$transaction(async (tx) =>
+        ensureThemeInTransaction(tx, {
+          name: trimmedName,
+          atomTermId,
+          description: trimmedDescription,
+        }),
+      );
+      return NextResponse.json({
+        slug: created.slug,
+        name: created.name,
+        atomTermId,
+      }, { status: 201 });
     }
 
-    const theme = await createThemeWithUniqueSlug({
+    const theme = await createThemeNoAtom({
       name: trimmedName,
       description: trimmedDescription,
-      atomTermId: validatedAtomTermId,
     });
 
     return NextResponse.json({

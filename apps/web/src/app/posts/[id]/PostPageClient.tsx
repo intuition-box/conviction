@@ -15,6 +15,7 @@ import { ThemeRow } from "@/components/ThemeSelector/ThemeRow";
 import { useToast } from "@/components/Toast/ToastContext";
 import { useCreateTheme } from "@/features/theme/useCreateTheme";
 import { useAddPostTheme } from "@/features/theme/useAddPostTheme";
+import { asExistingTheme, type ThemeItem } from "@/features/theme/types";
 import type { ReplyNode } from "@/lib/types/reply";
 
 import { AncestorBreadcrumbs } from "./AncestorBreadcrumbs";
@@ -53,7 +54,9 @@ export function PostPageClient({ post, themes: initialThemes, breadcrumbs, repli
   const [inspectorTriples, setInspectorTriples] = useState(post.tripleLinks);
   const [voteRefreshKey, setVoteRefreshKey] = useState(0);
   const [themes, setThemes] = useState(initialThemes);
-  const [replyThemes, setReplyThemes] = useState(initialThemes);
+  const [replyThemes, setReplyThemes] = useState<ThemeItem[]>(() =>
+    initialThemes.map(asExistingTheme),
+  );
 
   const { createTheme, isCreating: isCreatingTheme } = useCreateTheme();
   const { addThemeToPost, isAdding: isAddingTheme, error: addThemeError } = useAddPostTheme();
