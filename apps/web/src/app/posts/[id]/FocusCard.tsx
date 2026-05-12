@@ -6,6 +6,7 @@ import { Plus, Loader2 } from "lucide-react";
 
 import { ThemeBadge } from "@/components/ThemeBadge/ThemeBadge";
 import { ThemePicker } from "@/components/ThemePicker/ThemePicker";
+import { asExistingTheme } from "@/features/theme/types";
 
 import styles from "./FocusCard.module.css";
 
@@ -92,7 +93,7 @@ export function FocusCard({
             {showPicker && (
               <div className={styles.selectorPopover}>
                 <ThemePicker
-                  selected={themes}
+                  selected={themes.map(asExistingTheme)}
                   onPickTheme={handlePickTheme}
                   onLinkAtom={handleLinkAtom}
                   onCreateNew={onCreateTheme}

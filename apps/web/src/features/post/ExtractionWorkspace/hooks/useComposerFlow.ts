@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { ThemeItem } from "@/features/theme/types";
+
 import type { Stance } from "../extraction";
 import { useExtractionFlow } from "./useExtractionFlow";
 
 export type UseComposerFlowParams = {
-  themes: { slug: string; name: string }[];
+  themes: ThemeItem[];
   parentPostId: string | null;
   parentMainTripleTermId?: string | null;
   onPublishSuccess: (postId: string) => void;

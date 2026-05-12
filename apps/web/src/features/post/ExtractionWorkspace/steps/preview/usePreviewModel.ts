@@ -10,6 +10,8 @@ import {
   getReferenceBodyForProposal,
 } from "@/lib/validation/semanticRelevance";
 
+import { tagEntryKey } from "../../extraction/publishPlan";
+
 import {
   assignNestedToDrafts,
   buildPublishPlan,
@@ -54,6 +56,7 @@ export type PreviewModelInputs = {
   parentPostId?: string | null;
   parentMainTripleTermId?: string | null;
   themes: { slug: string; name: string }[];
+  pendingThemes: { name: string; atomTermId: string }[];
   parentClaim?: string | null;
   resolvedAtomMap?: Map<string, string>;
   metadataTripleStatuses?: Map<string, string>;
@@ -134,6 +137,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
     parentPostId,
     parentMainTripleTermId,
     themes,
+    pendingThemes,
     parentClaim,
     resolvedAtomMap,
     metadataTripleStatuses,
@@ -166,7 +170,15 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
         mainRefByDraft,
         parentPostId,
         parentMainTripleTermId,
-        themes,
+        themes: [
+          ...themes.map((t) => ({ kind: "existing" as const, slug: t.slug, name: t.name })),
+          ...pendingThemes.map((p) => ({
+            kind: "pending-atom" as const,
+            tempId: p.atomTermId,
+            name: p.name,
+            atomTermId: p.atomTermId,
+          })),
+        ],
       }),
     [
       approvedProposals,
@@ -176,6 +188,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
       parentPostId,
       parentMainTripleTermId,
       themes,
+      pendingThemes,
     ],
   );
   const { publishableProposals, invalidProposals } = publishPlan;
@@ -265,7 +278,7 @@ export function usePreviewModel(inputs: PreviewModelInputs): PreviewModel {
   const existingNestedCount = existingNestedEdgeCount + existingDerivedCount;
   const existingNestedMainCount = [...mainNestedIds].filter((key) => nestedTripleStatuses.has(key)).length;
   const existingTagCount = publishPlan.metadata.tagEntries
-    .filter((e) => metadataTripleStatuses?.has(`tag-${e.draftId}-${e.themeSlug}`)).length;
+    .filter((e) => metadataTripleStatuses?.has(`tag-${e.draftId}-${tagEntryKey(e)}`)).length;
   const existingTripleCount = tripleSummary.existingTriples.length + existingNestedCount + existingTagCount;
 
   const newDirectMainCount = tripleSummary.newTriples

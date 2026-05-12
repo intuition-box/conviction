@@ -8,6 +8,7 @@ import { getMultiVaultAddressFromChainId } from "@0xintuition/sdk";
 import { intuitionMainnet } from "@/lib/chain";
 import { ensureIntuitionGraphql } from "@/lib/intuition";
 import { labels } from "@/lib/vocabulary";
+import type { PendingTheme } from "@/features/theme/types";
 import {
   validateAtomRelevance,
   checkMeaningPreservation,
@@ -81,6 +82,7 @@ type UseOnchainPublishParams = {
   proposals: ProposalDraft[];
   themes: { slug: string; name: string }[];
   themeSlugs: string[];
+  pendingThemes: PendingTheme[];
   mainRefByDraft: Map<string, MainRef | null>;
   derivedTriples: DerivedTripleDraft[];
   nestedRefLabels: Map<string, string>;
@@ -126,6 +128,7 @@ export function useOnchainPublish({
   proposals,
   themes,
   themeSlugs,
+  pendingThemes,
   mainRefByDraft,
   derivedTriples,
   nestedRefLabels,
@@ -200,6 +203,16 @@ export function useOnchainPublish({
     let prepared = false;
 
     try {
+      const planThemes = [
+        ...themes.map((t) => ({ kind: "existing" as const, slug: t.slug, name: t.name })),
+        ...pendingThemes.map((p) => ({
+          kind: "pending-atom" as const,
+          tempId: p.atomTermId,
+          name: p.name,
+          atomTermId: p.atomTermId,
+        })),
+      ];
+
       const publishPlan = buildPublishPlan({
         approvedProposals,
         draftPosts,
@@ -207,7 +220,7 @@ export function useOnchainPublish({
         mainRefByDraft,
         parentPostId: extractionJob.parentPostId ?? null,
         parentMainTripleTermId: extractionJob.parentMainTripleTermId ?? null,
-        themes,
+        themes: planThemes,
       });
 
       const firstPlanError = publishPlan.errors[0];
@@ -485,7 +498,6 @@ export function useOnchainPublish({
       const seenTagTriples = new Set<string>();
       const resolvedThemeMap = new Map(resolvedThemes.map((t) => [t.slug, t]));
 
-      // Resolve tag entries from publishPlan — match each entry's themeSlug to resolved atomTermId
       const preResolvedMetadata = resolutionMap?.metadataTriples;
       for (const entry of publishPlan.metadata.tagEntries) {
         const mainRef = mainRefByDraft.get(entry.draftId) ?? null;
@@ -496,19 +508,30 @@ export function useOnchainPublish({
             `Tag metadata unresolved for draft "${entry.draftId}" (main triple not resolved).`,
           );
         }
-        const resolved = resolvedThemeMap.get(entry.themeSlug);
-        if (!resolved?.atomTermId) continue;
-        const dedupeKey = `${mainTripleTermId}-${resolved.atomTermId}`;
+
+        let themeAtomTermId: string | null = null;
+        let entryKeySuffix: string;
+        if (entry.kind === "existing") {
+          const resolved = resolvedThemeMap.get(entry.themeSlug);
+          themeAtomTermId = resolved?.atomTermId ?? null;
+          entryKeySuffix = `slug:${entry.themeSlug}`;
+        } else {
+          themeAtomTermId = entry.atomTermId;
+          entryKeySuffix = `atom:${entry.atomTermId}`;
+        }
+        if (!themeAtomTermId) continue;
+
+        const dedupeKey = `${mainTripleTermId}-${themeAtomTermId}`;
         if (seenTagTriples.has(dedupeKey)) continue;
         seenTagTriples.add(dedupeKey);
 
-        const metaKey = `tag-${entry.draftId}-${entry.themeSlug}`;
+        const metaKey = `tag-${entry.draftId}-${entryKeySuffix}`;
         if (preResolvedMetadata?.has(metaKey)) continue;
 
         resolvedPlan.tagEntries.push({
           mainTripleTermId,
           mainProposalId: entry.mainProposalId ?? entry.draftId,
-          themeAtomTermId: resolved.atomTermId,
+          themeAtomTermId,
         });
       }
 
@@ -571,6 +594,7 @@ export function useOnchainPublish({
         idempotencyKey,
         posts: draftPayloads,
         themeSlugs: themeSlugs.length > 0 ? themeSlugs : undefined,
+        pendingThemes: pendingThemes.length > 0 ? pendingThemes : undefined,
         atomTxHash,
         tripleTxHash,
         derivedTxHash,

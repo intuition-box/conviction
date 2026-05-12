@@ -32,7 +32,7 @@ export function ThemePageClient({ theme, rootPosts }: ThemePageClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const composerFlow = useComposerFlow({
-    themes: [{ slug: theme.slug, name: theme.name }],
+    themes: [{ kind: "existing", slug: theme.slug, name: theme.name }],
     parentPostId: null,
     onPublishSuccess: (postId) => {
       addToast("Debate created", "success", { label: "See", href: `/posts/${postId}` }, 6000);

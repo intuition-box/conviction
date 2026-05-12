@@ -5,19 +5,26 @@ import { Plus, X } from "lucide-react";
 
 import { ThemeBadge } from "@/components/ThemeBadge/ThemeBadge";
 import { ThemePicker } from "@/components/ThemePicker/ThemePicker";
+import { getThemeKey, type ThemeItem } from "@/features/theme/types";
 
 import styles from "./ThemeRow.module.css";
-
-type ThemeItem = { slug: string; name: string };
 
 type ThemeRowProps = {
   selected: ThemeItem[];
   onChange: (themes: ThemeItem[]) => void;
   min?: number;
   lockedSlugs?: string[];
-  onCreateTheme?: (name: string) => Promise<ThemeItem | null>;
+  /** When omitted, the picker hides the "Create new" affordance. */
+  onCreateTheme?: (name: string) => Promise<{ slug: string; name: string } | null>;
   placeholder?: string;
 };
+
+function newTempId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `tmp-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+}
 
 export function ThemeRow({
   selected,
@@ -43,39 +50,34 @@ export function ThemeRow({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showPicker]);
 
-  function canRemove(slug: string) {
-    if (lockedSet?.has(slug)) return false;
+  function canRemove(t: ThemeItem) {
+    if (t.kind === "existing" && lockedSet?.has(t.slug)) return false;
     if (selected.length <= min) return false;
     return true;
   }
 
-  function handleRemove(slug: string) {
-    if (!canRemove(slug)) return;
-    onChange(selected.filter((t) => t.slug !== slug));
+  function handleRemove(target: ThemeItem) {
+    if (!canRemove(target)) return;
+    const key = getThemeKey(target);
+    onChange(selected.filter((t) => getThemeKey(t) !== key));
   }
 
   const handlePickTheme = useCallback(
-    (theme: ThemeItem) => {
-      onChange([...selected, theme]);
+    (theme: { slug: string; name: string }) => {
+      onChange([...selected, { kind: "existing", slug: theme.slug, name: theme.name }]);
       setShowPicker(false);
     },
     [selected, onChange],
   );
 
   const handleLinkAtom = useCallback(
-    async (atom: { id: string; label: string }) => {
-      try {
-        const res = await fetch("/api/themes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: atom.label, atomTermId: atom.id }),
-        });
-        if (!res.ok) return;
-        const created: ThemeItem = await res.json();
-        onChange([...selected, { slug: created.slug, name: created.name }]);
-        setShowPicker(false);
-      } catch {
-      }
+    (atom: { id: string; label: string }) => {
+      // Picked atom is held locally; persisted by /api/publish in the post transaction.
+      onChange([
+        ...selected,
+        { kind: "pending-atom", tempId: newTempId(), name: atom.label, atomTermId: atom.id },
+      ]);
+      setShowPicker(false);
     },
     [selected, onChange],
   );
@@ -85,7 +87,7 @@ export function ThemeRow({
       if (!onCreateTheme) return;
       const result = await onCreateTheme(name);
       if (result) {
-        onChange([...selected, result]);
+        onChange([...selected, { kind: "existing", slug: result.slug, name: result.name }]);
         setShowPicker(false);
       }
     },
@@ -94,21 +96,28 @@ export function ThemeRow({
 
   return (
     <div className={styles.row}>
-      {selected.map((t) => (
-        <span key={t.slug} className={styles.chip}>
-          <ThemeBadge size="sm" slug={t.slug}>{t.name}</ThemeBadge>
-          {canRemove(t.slug) && (
-            <button
-              type="button"
-              className={styles.removeBtn}
-              onClick={() => handleRemove(t.slug)}
-              aria-label={`Remove ${t.name}`}
-            >
-              <X size={10} />
-            </button>
-          )}
-        </span>
-      ))}
+      {selected.map((t) => {
+        const key = getThemeKey(t);
+        const removable = canRemove(t);
+        const isPending = t.kind === "pending-atom";
+        return (
+          <span key={key} className={`${styles.chip}${isPending ? ` ${styles.pendingChip}` : ""}`}>
+            <ThemeBadge size="sm" slug={t.kind === "existing" ? t.slug : undefined}>
+              {t.name}
+            </ThemeBadge>
+            {removable && (
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => handleRemove(t)}
+                aria-label={`Remove ${t.name}`}
+              >
+                <X size={10} />
+              </button>
+            )}
+          </span>
+        );
+      })}
       <div className={styles.addWrapper} ref={popoverRef}>
         <button
           type="button"

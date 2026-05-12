@@ -9,6 +9,7 @@ import type { ReplyTarget } from "@/app/_components/DebateThread/DebateThread";
 import { ComposerBlock } from "@/features/post/ExtractionWorkspace/ComposerBlock";
 import { useComposerFlow } from "@/features/post/ExtractionWorkspace/hooks/useComposerFlow";
 import { ThemeRow } from "@/components/ThemeSelector/ThemeRow";
+import { asExistingTheme, type ThemeItem } from "@/features/theme/types";
 import { labels } from "@/lib/vocabulary";
 
 type InlineComposerProps = {
@@ -25,7 +26,9 @@ const PLACEHOLDERS: Record<ReplyTarget["stance"] | "neutral", string> = {
 };
 
 export function InlineComposer({ target, onClose, onPublishSuccess, onCreateTheme }: InlineComposerProps) {
-  const [selectedThemes, setSelectedThemes] = useState(target.themes);
+  const [selectedThemes, setSelectedThemes] = useState<ThemeItem[]>(() =>
+    target.themes.map(asExistingTheme),
+  );
   const composerFlow = useComposerFlow({
     themes: selectedThemes,
     parentPostId: target.postId,

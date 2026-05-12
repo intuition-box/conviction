@@ -10,11 +10,12 @@ const MAX_PARENT_CONTEXT = 800;
 
 export type ValidatedSubmission = {
   userId: string;
-  themeSlug: string;
+  themeSlug: string | null;
+  themeName: string;
   trimmedInput: string;
   normalizedParentPostId: string | null;
   normalizedStance: "SUPPORTS" | "REFUTES" | null;
-  theme: { slug: string; name: string | null };
+  theme: { slug: string; name: string | null } | null;
   parentBody: string | null;
 };
 
@@ -50,14 +51,33 @@ export async function validateSubmissionRequest(
   }
 
   const userId = auth.userId;
-  const { themeSlug, inputText, parentPostId, stance } = body as Record<string, unknown>;
+  const { themeSlug, themeName, inputText, parentPostId, stance } = body as Record<string, unknown>;
 
-  // 3. themeSlug
-  if (typeof themeSlug !== "string" || !themeSlug.trim()) {
+  // 3. themeName (always required — used for LLM context regardless of DB presence)
+  if (typeof themeName !== "string" || !themeName.trim()) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "themeSlug is required." }, { status: 400 }),
+      response: NextResponse.json({ error: "themeName is required." }, { status: 400 }),
     };
+  }
+  const trimmedThemeName = themeName.trim();
+  if (trimmedThemeName.length > 100) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "themeName too long (max 100 characters)." }, { status: 400 }),
+    };
+  }
+
+  // 3b. themeSlug (optional — only present when the user picked an existing DB theme)
+  let normalizedThemeSlug: string | null = null;
+  if (themeSlug !== undefined && themeSlug !== null && themeSlug !== "") {
+    if (typeof themeSlug !== "string") {
+      return {
+        ok: false,
+        response: NextResponse.json({ error: "themeSlug must be a string." }, { status: 400 }),
+      };
+    }
+    normalizedThemeSlug = themeSlug;
   }
 
   // 4. inputText
@@ -84,13 +104,17 @@ export async function validateSubmissionRequest(
     };
   }
 
-  // 6. Theme exists
-  const theme = await prisma.theme.findUnique({ where: { slug: themeSlug } });
-  if (!theme) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Theme not found." }, { status: 404 }),
-    };
+  // 6. Theme lookup — only if slug was provided
+  let theme: { slug: string; name: string | null } | null = null;
+  if (normalizedThemeSlug) {
+    const row = await prisma.theme.findUnique({ where: { slug: normalizedThemeSlug } });
+    if (!row) {
+      return {
+        ok: false,
+        response: NextResponse.json({ error: "Theme not found." }, { status: 404 }),
+      };
+    }
+    theme = { slug: row.slug, name: row.name ?? null };
   }
 
   // 7. parentPostId + stance
@@ -150,11 +174,12 @@ export async function validateSubmissionRequest(
     ok: true,
     data: {
       userId: user.id,
-      themeSlug: theme.slug,
+      themeSlug: theme?.slug ?? null,
+      themeName: trimmedThemeName,
       trimmedInput,
       normalizedParentPostId,
       normalizedStance,
-      theme: { slug: theme.slug, name: theme.name ?? null },
+      theme,
       parentBody,
     },
   };

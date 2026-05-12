@@ -1,6 +1,22 @@
 
 
 export const MAX_BODY_LENGTH = 5000;
+export const MAX_THEME_NAME_LENGTH = 100;
+const HEX_ID_REGEX = /^0x[a-fA-F0-9]{1,128}$/;
+
+export type PendingThemeInput = {
+  name: string;
+  atomTermId: string;
+};
+
+export function isValidPendingTheme(value: unknown): value is PendingThemeInput {
+  if (!value || typeof value !== "object") return false;
+  const t = value as Record<string, unknown>;
+  if (typeof t.name !== "string" || t.name.trim().length === 0) return false;
+  if (t.name.trim().length > MAX_THEME_NAME_LENGTH) return false;
+  if (typeof t.atomTermId !== "string" || !HEX_ID_REGEX.test(t.atomTermId)) return false;
+  return true;
+}
 
 export type TripleInput = {
   proposalId: string;

@@ -24,6 +24,7 @@ import { ProtocolDetails, type StanceInfo, type TagInfo } from "./preview/Protoc
 import { useHighlightedText } from "./preview/useHighlightedText";
 import { usePreviewModel } from "./preview/usePreviewModel";
 import { assignNestedToDrafts } from "../extraction";
+import { tagEntryKey } from "../extraction/publishPlan";
 import { useDuplicateCheck } from "../hooks/useDuplicateCheck";
 import { type HoverTerms } from "./preview/previewTypes";
 
@@ -133,6 +134,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
     parentPostId: extractionJob?.parentPostId ?? null,
     parentMainTripleTermId: flow.parentMainTripleTermId ?? null,
     themes: flow.themes,
+    pendingThemes: flow.pendingThemes,
     parentClaim: flow.parentClaim,
     resolvedAtomMap: flow.resolvedAtomMap,
     nestedTripleStatuses: flow.nestedTripleStatuses,
@@ -328,7 +330,7 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
       draftIndex: entry.draftIndex,
       mainTarget: entry.mainTarget,
       themeLabel: entry.themeName,
-      themeSlug: entry.themeSlug,
+      entryKey: tagEntryKey(entry),
     })),
     [model.publishPlan.metadata.tagEntries],
   );

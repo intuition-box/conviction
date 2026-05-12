@@ -21,6 +21,7 @@ import { ThemeRow } from "@/components/ThemeSelector/ThemeRow";
 import { useToast } from "@/components/Toast/ToastContext";
 import { useSentimentBatch } from "@/hooks/useSentimentBatch";
 import { useCreateTheme } from "@/features/theme/useCreateTheme";
+import type { ThemeItem } from "@/features/theme/types";
 
 import styles from "./page.module.css";
 
@@ -128,7 +129,7 @@ export function HomePageClient({ trending, feed, themes, loadMoreReplies, stats 
   const [themeFilter, setThemeFilter] = useState<string | null>(null);
 
   const rootComposerRef = useRef<HTMLDivElement>(null);
-  const [selectedThemes, setSelectedThemes] = useState<{ slug: string; name: string }[]>([]);
+  const [selectedThemes, setSelectedThemes] = useState<ThemeItem[]>([]);
 
   // Inspector state
   const [inspectorOpen, setInspectorOpen] = useState(false);

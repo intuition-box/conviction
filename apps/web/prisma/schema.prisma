@@ -116,11 +116,11 @@ model Submission {
   publishedPostId       String?          @unique
   parentPostId          String?
   stance                Stance?
-  themeSlug             String
+  themeSlug             String?
   publishIdempotencyKey String?          // Lock key to prevent concurrent publish attempts
   publishedPost         Post?            @relation("PublishedSubmission", fields: [publishedPostId], references: [id], onDelete: SetNull)
   parentPost            Post?            @relation("ParentSubmission", fields: [parentPostId], references: [id], onDelete: SetNull)
-  theme                 Theme            @relation(fields: [themeSlug], references: [slug])
+  theme                 Theme?           @relation(fields: [themeSlug], references: [slug])
   user                  User             @relation(fields: [userId], references: [id])
   originPosts           Post[]           @relation("OriginSubmission")
 
