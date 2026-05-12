@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, TrendingUp, ChevronsLeft, ChevronsRight, Wallet, LogOut, UserPen } from "lucide-react";
+import { Home, Compass, TrendingUp, LayoutDashboard, ChevronsLeft, ChevronsRight, Wallet, LogOut, UserPen } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { useAccount } from "wagmi";
 
 import { Avatar } from "@/components/Avatar/Avatar";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useOnboarding } from "@/features/onboarding/OnboardingContext";
 import { SOCIAL_ICONS } from "@/components/SocialIcons/SocialIcons";
+import { labels } from "@/lib/vocabulary";
 import { useSidebar } from "./SidebarContext";
 import styles from "./Sidebar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Feed", icon: Home },
-  { href: "/themes", label: "Explore", icon: Compass },
-  { href: "/trending", label: "Trending", icon: TrendingUp },
+  { href: "/", label: "Feed", icon: Home, requiresAuth: false, disabled: false },
+  { href: "/themes", label: "Explore", icon: Compass, requiresAuth: false, disabled: false },
+  { href: "/trending", label: "Trending", icon: TrendingUp, requiresAuth: false, disabled: true },
+  { href: "/me", label: labels.dashboardNavLabel, icon: LayoutDashboard, requiresAuth: true, disabled: false },
 ] as const;
 
 function UserMenu({
@@ -84,11 +87,14 @@ function UserMenu({
 export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
+  const { isConnected } = useAccount();
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   }
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.requiresAuth || isConnected);
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
@@ -97,17 +103,29 @@ export function Sidebar() {
       </Link>
 
       <nav className={styles.nav}>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`${styles.navLink} ${isActive(href) ? styles.navLinkActive : ""}`}
-            title={collapsed ? label : undefined}
-          >
-            <Icon className={styles.navIcon} />
-            {!collapsed && <span>{label}</span>}
-          </Link>
-        ))}
+        {visibleNavItems.map(({ href, label, icon: Icon, disabled }) =>
+          disabled ? (
+            <span
+              key={href}
+              className={`${styles.navLink} ${styles.navLinkDisabled}`}
+              aria-disabled="true"
+              title={`${label} — coming soon`}
+            >
+              <Icon className={styles.navIcon} />
+              {!collapsed && <span>{label}</span>}
+            </span>
+          ) : (
+            <Link
+              key={href}
+              href={href}
+              className={`${styles.navLink} ${isActive(href) ? styles.navLinkActive : ""}`}
+              title={collapsed ? label : undefined}
+            >
+              <Icon className={styles.navIcon} />
+              {!collapsed && <span>{label}</span>}
+            </Link>
+          ),
+        )}
       </nav>
 
       <div className={styles.spacer} />

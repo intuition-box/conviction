@@ -81,11 +81,10 @@ export function createSessionCookie(userId: string, address: string, chainId: nu
 }
 
 /**
- * Read and verify the session from a Request's cookies.
+ * Read and verify the session from a raw Cookie header string.
  * Returns null if no valid session exists.
  */
-export function getSessionFromRequest(request: Request): SessionData | null {
-  const cookieHeader = request.headers.get("cookie");
+export function getSessionFromCookieHeader(cookieHeader: string | null): SessionData | null {
   if (!cookieHeader) return null;
 
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
@@ -99,6 +98,14 @@ export function getSessionFromRequest(request: Request): SessionData | null {
     address: payload.addr,
     chainId: payload.chain,
   };
+}
+
+/**
+ * Read and verify the session from a Request's cookies (API routes).
+ * Returns null if no valid session exists.
+ */
+export function getSessionFromRequest(request: Request): SessionData | null {
+  return getSessionFromCookieHeader(request.headers.get("cookie"));
 }
 
 /**

@@ -77,6 +77,17 @@
   color: var(--color-accent);
 }
 
+.navLinkDisabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.navLinkDisabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
 .navIcon {
   width: 17px;
   height: 17px;

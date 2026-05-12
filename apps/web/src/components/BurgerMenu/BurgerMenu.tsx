@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
+import { labels } from "@/lib/vocabulary";
 import styles from "./BurgerMenu.module.css";
 
 export function BurgerMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { isConnected } = useAccount();
 
   // Close on click outside
   useEffect(() => {
@@ -36,9 +40,15 @@ export function BurgerMenu() {
       {open && (
         <div className={styles.dropdown}>
           <ConnectButton />
-          <button className={styles.menuItem} disabled>
-            Dashboard
-          </button>
+          {isConnected && (
+            <Link
+              href="/me"
+              className={styles.menuItem}
+              onClick={() => setOpen(false)}
+            >
+              {labels.dashboardNavLabel}
+            </Link>
+          )}
         </div>
       )}
     </div>

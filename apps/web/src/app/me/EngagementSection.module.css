@@ -1,0 +1,107 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card, 8px);
+  overflow: hidden;
+}
+
+.line {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.line:last-child {
+  border-bottom: none;
+}
+
+.lineLink {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2-5) var(--space-3);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+  min-width: 0;
+}
+
+.lineLink:hover {
+  background: var(--bg-surface);
+}
+
+.sentiment {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.body {
+  font-size: var(--font-size-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.stats {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono-google);
+  font-size: var(--font-size-mono-sm);
+  color: var(--text-secondary);
+}
+
+.score {
+  font-family: var(--font-mono-google);
+  font-size: var(--font-size-mono-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0 var(--space-1-5);
+  border-left: 1px solid var(--border-subtle);
+  margin-left: var(--space-1);
+  cursor: help;
+}
+
+.empty {
+  padding: var(--space-5) var(--space-3);
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  text-align: center;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-card, 8px);
+}
+
+.degraded {
+  padding: var(--space-4);
+  font-size: var(--font-size-small);
+  color: var(--text-muted);
+  text-align: center;
+  background: var(--bg-inset);
+  border-radius: var(--radius-card, 8px);
+}
+
+.capNote {
+  margin: 0;
+  font-size: var(--font-size-tiny);
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+}

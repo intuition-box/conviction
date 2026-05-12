@@ -8,9 +8,9 @@ import { BurgerMenu } from "@/components/BurgerMenu/BurgerMenu";
 import styles from "./BottomNav.module.css";
 
 const TABS = [
-  { href: "/", label: "Feed", icon: Home },
-  { href: "/themes", label: "Explore", icon: Compass },
-  { href: "/trending", label: "Trending", icon: TrendingUp },
+  { href: "/", label: "Feed", icon: Home, disabled: false },
+  { href: "/themes", label: "Explore", icon: Compass, disabled: false },
+  { href: "/trending", label: "Trending", icon: TrendingUp, disabled: true },
 ] as const;
 
 export function BottomNav() {
@@ -23,16 +23,28 @@ export function BottomNav() {
 
   return (
     <nav className={styles.bottomNav}>
-      {TABS.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className={`${styles.tab} ${isActive(href) ? styles.tabActive : ""}`}
-        >
-          <Icon className={styles.tabIcon} />
-          <span>{label}</span>
-        </Link>
-      ))}
+      {TABS.map(({ href, label, icon: Icon, disabled }) =>
+        disabled ? (
+          <span
+            key={href}
+            className={`${styles.tab} ${styles.tabDisabled}`}
+            aria-disabled="true"
+            title={`${label} — coming soon`}
+          >
+            <Icon className={styles.tabIcon} />
+            <span>{label}</span>
+          </span>
+        ) : (
+          <Link
+            key={href}
+            href={href}
+            className={`${styles.tab} ${isActive(href) ? styles.tabActive : ""}`}
+          >
+            <Icon className={styles.tabIcon} />
+            <span>{label}</span>
+          </Link>
+        ),
+      )}
       <div className={styles.tab}>
         <BurgerMenu />
       </div>
