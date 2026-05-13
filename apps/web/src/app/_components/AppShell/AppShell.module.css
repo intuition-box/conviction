@@ -38,19 +38,10 @@
     z-index: var(--z-sidebar);
     overflow-y: auto;
     background: var(--bg-inset);
-    transition: width var(--transition-base);
-  }
-
-  .sidebarCollapsed {
-    width: 64px;
   }
 
   .content {
     margin-left: var(--sidebar-left-width);
-  }
-
-  .contentCollapsed {
-    margin-left: 64px;
   }
 
   .bottomNav {

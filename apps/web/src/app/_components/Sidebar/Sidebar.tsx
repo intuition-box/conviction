@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, TrendingUp, LayoutDashboard, ChevronsLeft, ChevronsRight, Wallet, LogOut, UserPen } from "lucide-react";
+import { Home, Compass, TrendingUp, LayoutDashboard, Wallet, LogOut, UserPen } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useAccount } from "wagmi";
@@ -12,7 +12,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useOnboarding } from "@/features/onboarding/OnboardingContext";
 import { SOCIAL_ICONS } from "@/components/SocialIcons/SocialIcons";
 import { labels } from "@/lib/vocabulary";
-import { useSidebar } from "./SidebarContext";
 import styles from "./Sidebar.module.css";
 
 const NAV_ITEMS = [
@@ -86,7 +85,6 @@ function UserMenu({
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { collapsed, toggle } = useSidebar();
   const { isConnected } = useAccount();
 
   function isActive(href: string) {
@@ -97,9 +95,9 @@ export function Sidebar() {
   const visibleNavItems = NAV_ITEMS.filter((item) => !item.requiresAuth || isConnected);
 
   return (
-    <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
+    <aside className={styles.sidebar}>
       <Link href="/" className={styles.logo} aria-label="PULSE">
-        <span className={styles.logoText}>{collapsed ? "P" : "PULSE"}</span>
+        <span className={styles.logoText}>PULSE</span>
       </Link>
 
       <nav className={styles.nav}>
@@ -112,17 +110,16 @@ export function Sidebar() {
               title={`${label} — coming soon`}
             >
               <Icon className={styles.navIcon} />
-              {!collapsed && <span>{label}</span>}
+              <span>{label}</span>
             </span>
           ) : (
             <Link
               key={href}
               href={href}
               className={`${styles.navLink} ${isActive(href) ? styles.navLinkActive : ""}`}
-              title={collapsed ? label : undefined}
             >
               <Icon className={styles.navIcon} />
-              {!collapsed && <span>{label}</span>}
+              <span>{label}</span>
             </Link>
           ),
         )}
@@ -130,43 +127,33 @@ export function Sidebar() {
 
       <div className={styles.spacer} />
 
-      <button
-        className={styles.toggleBtn}
-        onClick={toggle}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-      </button>
+      <div className={styles.footer}>
+        <ConnectButton.Custom>
+          {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
+            const connected = mounted && account && chain;
 
-      {!collapsed && (
-        <div className={styles.footer}>
-          <ConnectButton.Custom>
-            {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
-              const connected = mounted && account && chain;
-
-              if (!connected) {
-                return (
-                  <button
-                    type="button"
-                    onClick={openConnectModal}
-                    className={styles.connectBtn}
-                  >
-                    <Wallet size={14} />
-                    <span>Connect wallet</span>
-                  </button>
-                );
-              }
-
+            if (!connected) {
               return (
-                <UserMenu
-                  walletDisplayName={account.displayName}
-                  onDisconnect={openAccountModal}
-                />
+                <button
+                  type="button"
+                  onClick={openConnectModal}
+                  className={styles.connectBtn}
+                >
+                  <Wallet size={14} />
+                  <span>Connect wallet</span>
+                </button>
               );
-            }}
-          </ConnectButton.Custom>
-        </div>
-      )}
+            }
+
+            return (
+              <UserMenu
+                walletDisplayName={account.displayName}
+                onDisconnect={openAccountModal}
+              />
+            );
+          }}
+        </ConnectButton.Custom>
+      </div>
     </aside>
   );
 }

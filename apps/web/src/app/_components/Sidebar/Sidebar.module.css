@@ -10,7 +10,6 @@
   padding: var(--space-4) 0;
   overflow-x: hidden;
   overflow-y: auto;
-  transition: width var(--transition-base);
 }
 
 /* ── Logo ───────────────────────────────────────────────────────────────── */
@@ -32,11 +31,6 @@
   color: var(--text-primary);
   line-height: 1;
   letter-spacing: 0.14em;
-}
-
-.collapsed .logoText {
-  font-size: var(--font-size-logo-xl);
-  letter-spacing: 0;
 }
 
 /* ── Nav links ──────────────────────────────────────────────────────────── */
@@ -153,55 +147,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-}
-
-/* ── Toggle button ─────────────────────────────────────────────────────── */
-
-.toggleBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: 0 auto var(--space-2);
-  border: none;
-  border-radius: var(--radius-btn-irregular);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
-
-.toggleBtn:hover {
-  color: var(--text-primary);
-  background: var(--bg-surface-hover);
-}
-
-.collapsed .toggleBtn {
-  background: var(--bg-surface-hover);
-  border: 1px solid var(--border-subtle);
-}
-
-/* ── Collapsed state ───────────────────────────────────────────────────── */
-
-.collapsed {
-  align-items: center;
-}
-
-.collapsed .logo {
-  justify-content: center;
-  padding: 0;
-}
-
-.collapsed .nav {
-  align-items: center;
-  padding: 0 var(--space-2);
-}
-
-.collapsed .navLink {
-  justify-content: center;
-  padding: 9px;
 }
 
 /* ── User Menu ─────────────────────────────────────────────────────────────── */
