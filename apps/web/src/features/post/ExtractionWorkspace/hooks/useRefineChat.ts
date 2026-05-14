@@ -29,7 +29,10 @@ export type ChatMessage = {
   details?: true;
 };
 
-type Proposal = Pick<ProposalDraft, "id" | "sText" | "pText" | "oText" | "role" | "stableKey"> & {
+type Proposal = Pick<
+  ProposalDraft,
+  "id" | "sText" | "pText" | "oText" | "role" | "stableKey" | "outermostMainKey" | "subjectNestedKey" | "objectNestedKey"
+> & {
   postNumber?: number;
 };
 
@@ -92,6 +95,20 @@ function describeToolAction(name: string, args?: Record<string, unknown>): strin
       return "Updated post body.";
     }
     case "split_posts": return "Split claims into separate posts.";
+    case "nest_slot": {
+      const field = args?.field as string | undefined;
+      const s = args?.subject as string | undefined;
+      const p = args?.predicate as string | undefined;
+      const o = args?.object as string | undefined;
+      if (field && s && p && o) return `Nested ${field} slot into [${s} · ${p} · ${o}]`;
+      return "Nested a slot.";
+    }
+    case "flatten_slot": {
+      const field = args?.field as string | undefined;
+      const label = args?.label as string | undefined;
+      if (field && label) return `Flattened ${field} slot into "${label}"`;
+      return "Flattened a slot.";
+    }
     default: return "Applied change.";
   }
 }
@@ -278,6 +295,63 @@ function applyToolCall(
   } else if (name === "split_posts") {
     if (!onSplit) return { blocked: "Split not available." };
     onSplit();
+  } else if (name === "nest_slot") {
+    const proposalId = args.proposalId as string;
+    const field = args.field as "subject" | "object";
+    const subject = (args.subject as string)?.trim();
+    const predicate = (args.predicate as string)?.trim();
+    const object = (args.object as string)?.trim();
+    if (!proposalId || (field !== "subject" && field !== "object")) {
+      return { blocked: "nest_slot requires proposalId and field (subject or object)." };
+    }
+    if (!subject || !predicate || !object) {
+      return { blocked: "nest_slot requires non-empty inner subject, predicate, and object." };
+    }
+    if (isHexId(subject) || isHexId(predicate) || isHexId(object)) {
+      return { blocked: "Use human-readable labels, not on-chain IDs." };
+    }
+    const target = proposals.find((p) => p.id === proposalId);
+    if (!target) return { blocked: `Proposal ${proposalId} not found.` };
+    if (target.outermostMainKey) {
+      return { blocked: "This proposal is embedded in a conditional structure — flatten the conditional first." };
+    }
+    const existingNestedKey = field === "subject" ? target.subjectNestedKey : target.objectNestedKey;
+    if (existingNestedKey) {
+      return { blocked: `${field} slot is already a nested triple — use flatten_slot first to swap structure.` };
+    }
+    const body = getReferenceBodyForProposal(proposalId, draftPosts);
+    if (body) {
+      const concatLabel = `${subject} ${predicate} ${object}`;
+      const updated = {
+        subject: field === "subject" ? concatLabel : target.sText,
+        predicate: target.pText,
+        object: field === "object" ? concatLabel : target.oText,
+      };
+      const check = checkMeaningPreservation(body, updated);
+      if (!isAllowed(check)) return { blocked: check.reason ?? "Nested triple is not related to the post text." };
+    }
+    actions.onNestSlot(proposalId, field, { subject, predicate, object });
+  } else if (name === "flatten_slot") {
+    const proposalId = args.proposalId as string;
+    const field = args.field as "subject" | "object";
+    const label = (args.label as string)?.trim();
+    if (!proposalId || (field !== "subject" && field !== "object")) {
+      return { blocked: "flatten_slot requires proposalId and field (subject or object)." };
+    }
+    if (!label) return { blocked: "flatten_slot requires a non-empty label." };
+    if (isHexId(label)) return { blocked: "Use a human-readable label, not an on-chain ID." };
+    const target = proposals.find((p) => p.id === proposalId);
+    if (!target) return { blocked: `Proposal ${proposalId} not found.` };
+    const existingNestedKey = field === "subject" ? target.subjectNestedKey : target.objectNestedKey;
+    if (!existingNestedKey) {
+      return { blocked: `${field} slot is not nested — nothing to flatten.` };
+    }
+    const body = getReferenceBodyForProposal(proposalId, draftPosts);
+    if (body) {
+      const check = validateAtomRelevance(label, body, FIELD_MAP[field]);
+      if (!isAllowed(check)) return { blocked: check.reason ?? "Atom is not related to the post text." };
+    }
+    actions.onFlattenSlot(proposalId, field, label);
   }
   return { blocked: null };
 }
@@ -377,6 +451,9 @@ export function useRefineChat({
           role: p.role === "MAIN" ? "primary" as const : "supporting" as const,
           ...(p.postNumber != null ? { postNumber: p.postNumber } : {}),
           ...(p.stableKey ? { stableKey: p.stableKey } : {}),
+          ...(p.outermostMainKey ? { outermostMainKey: p.outermostMainKey } : {}),
+          ...(p.subjectNestedKey ? { subjectNestedKey: p.subjectNestedKey } : {}),
+          ...(p.objectNestedKey ? { objectNestedKey: p.objectNestedKey } : {}),
         }));
 
         const apiMessages = [...messages, userMsg]

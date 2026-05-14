@@ -60,6 +60,7 @@ export async function resolveTriples(
   ctx: PublishContext,
   directMainProposalIds?: Set<string>,
   preResolvedTriples?: Map<string, { tripleTermId: string; isExisting: boolean }>,
+  nestedTripleByKey?: Map<string, string>,
 ): Promise<{ tripleTxHash: string | null }> {
   type TripleEntry = {
     proposalId: string;
@@ -70,13 +71,29 @@ export async function resolveTriples(
     index: number;
   };
 
+  function resolveSubject(proposal: ApprovedProposalWithRole): string {
+    if (proposal.subjectNestedKey) {
+      const nestedId = nestedTripleByKey?.get(proposal.subjectNestedKey);
+      if (nestedId) return nestedId;
+    }
+    return atomMap.get(atomKey(proposal.sText))!;
+  }
+
+  function resolveObject(proposal: ApprovedProposalWithRole): string {
+    if (proposal.objectNestedKey) {
+      const nestedId = nestedTripleByKey?.get(proposal.objectNestedKey);
+      if (nestedId) return nestedId;
+    }
+    return atomMap.get(atomKey(proposal.oText))!;
+  }
+
   const tripleEntries: TripleEntry[] = entries.map(({ proposal, index }) => ({
     index,
     proposalId: proposal.id,
     role: proposal.role,
-    subjectAtomId: atomMap.get(atomKey(proposal.sText))!,
+    subjectAtomId: resolveSubject(proposal),
     predicateAtomId: atomMap.get(atomKey(proposal.pText))!,
-    objectAtomId: atomMap.get(atomKey(proposal.oText))!,
+    objectAtomId: resolveObject(proposal),
   }));
 
   // Inject pre-resolved triples from preview (skip re-resolution for existing ones)

@@ -171,6 +171,9 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
           oText: p.objectMatchedLabel || p.oText,
           role: effectiveRole,
           postNumber: proposalPostMap.get(p.id),
+          outermostMainKey: p.outermostMainKey,
+          subjectNestedKey: p.subjectNestedKey ?? null,
+          objectNestedKey: p.objectNestedKey ?? null,
         };
       });
 
@@ -203,6 +206,9 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
         oText: resolveRef(edge.object),
         role,
         postNumber: postNum,
+        outermostMainKey: null,
+        subjectNestedKey: null,
+        objectNestedKey: null,
       };
     });
 
@@ -226,6 +232,9 @@ export function StepPreviewPublish({ flow, chatOpen, onChatOpenChange, onBack, o
         oText: c?.o ?? dt.object,
         role: "SUPPORTING" as const,
         postNumber: postNum,
+        outermostMainKey: null,
+        subjectNestedKey: null,
+        objectNestedKey: null,
       };
     });
 

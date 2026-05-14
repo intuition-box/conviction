@@ -11,6 +11,7 @@ import {
   type NestedProposalDraft,
 } from "../../extraction";
 import { StructuredTripleInline } from "../../components/StructuredTripleInline";
+import { ProposalSlotInline } from "../../components/ProposalSlotInline";
 import type { DuplicateInfo } from "../../hooks/useDuplicateCheck";
 import cardStyles from "./cardStyles.module.css";
 
@@ -205,20 +206,41 @@ export function PostCard({
             <p className={cardStyles.bodyMuted}>No body</p>
           )}
 
-          {mainRef && mainRef.type !== "error" && (
-            <div className={cardStyles.actions}>
-              <ProtocolBadge />
-              <StructuredTripleInline
-                target={mainRef}
-                proposals={proposals}
-                nestedProposals={allNestedProposals}
-                nestedRefLabels={nestedRefLabels}
-                derivedTriples={derivedTriples}
-                derivedCanonicalLabels={derivedCanonicalLabels}
-                wrap
-              />
-            </div>
-          )}
+          {mainRef && mainRef.type !== "error" && (() => {
+            const mainProposalForSlot =
+              mainRef.type === "proposal"
+                ? proposals.find((p) => p.id === mainRef.id)
+                : null;
+            const hasSlotNesting = Boolean(
+              mainProposalForSlot?.subjectNestedKey || mainProposalForSlot?.objectNestedKey,
+            );
+            return (
+              <div className={cardStyles.actions}>
+                <ProtocolBadge />
+                {hasSlotNesting && mainProposalForSlot ? (
+                  <ProposalSlotInline
+                    proposal={mainProposalForSlot}
+                    proposals={proposals}
+                    nestedProposals={allNestedProposals}
+                    nestedRefLabels={nestedRefLabels}
+                    derivedTriples={derivedTriples}
+                    derivedCanonicalLabels={derivedCanonicalLabels}
+                    wrap
+                  />
+                ) : (
+                  <StructuredTripleInline
+                    target={mainRef}
+                    proposals={proposals}
+                    nestedProposals={allNestedProposals}
+                    nestedRefLabels={nestedRefLabels}
+                    derivedTriples={derivedTriples}
+                    derivedCanonicalLabels={derivedCanonicalLabels}
+                    wrap
+                  />
+                )}
+              </div>
+            );
+          })()}
         </>
       )}
 

@@ -11,6 +11,9 @@ export type RefineProposal = {
 
   postNumber?: number;
   stableKey?: string;
+  outermostMainKey?: string | null;
+  subjectNestedKey?: string | null;
+  objectNestedKey?: string | null;
 };
 
 export type SearchAtomsFn = (query: string, limit: number) => Promise<Array<{
@@ -185,6 +188,12 @@ ${opts.parentClaim ? `REPLYING TO: "${opts.parentClaim}"` : ""}${multiPostBlock}
 - **remove_triple**: Remove a claim the user wants to discard.
 - **update_post_body**: Change the human-readable post body text (distinct from the triple).
 - **split_posts**: Split into separate posts. Use ONLY on explicit user request. Never suggest splitting proactively.
+- **nest_slot**: Convert a subject or object slot from atom to nested triple. ONLY on explicit user request (never proactive). Predicate slot cannot be nested — if the user wants to restructure a complex predicate, simplify it with update_triple and move the complexity into a subject or object nested triple. Pair with update_triple if you also need to adjust the parent predicate. Avoid chains deeper than 3 levels.
+- **flatten_slot**: Flatten a nested triple slot back into a simple atom. Use when the user wants to simplify. The atom label is yours to choose — pick the most natural summary of the nested content.
+
+Example — user input "Algorithms reward emotion more than truth" was extracted as \`Algorithms | reward emotion more than | truth\`. If the user asks "simplify the predicate to 'reward' and make the object a nested triple [emotion | more than | truth]", you call:
+  1. update_triple(proposalId, "predicate", "reward")
+  2. nest_slot(proposalId, "object", "emotion", "more than", "truth")
 
 ## Rules
 
@@ -201,7 +210,8 @@ ${opts.parentClaim ? `REPLYING TO: "${opts.parentClaim}"` : ""}${multiPostBlock}
 11. **Blocked tools**: Some tool calls may be blocked by the system guard. If a tool is blocked, the user will see a warning. Do not assume tools always succeed.
 12. **Conciseness**: Keep responses under 2 sentences unless the user asks for details.
 13. **Splitting**: NEVER suggest splitting proactively. Only execute split_posts when user explicitly asks. If ambiguous, ask a short clarifying question. Flow: remove_triple → add_triple × N → split_posts.
-14. **Nested triples**: Some proposals are structural links (IDs starting with "nested:"). They represent how claims relate to each other (e.g., conditions, modifiers). You can edit them with update_triple. Sub-claims within nested structures have IDs starting with "derived:" — edit their fields (subject, predicate, object) with update_triple (not link_atom).`;
+14. **Nested triples**: Some proposals are structural links (IDs starting with "nested:"). They represent how claims relate to each other (e.g., conditions, modifiers). You can edit them with update_triple. Sub-claims within nested structures have IDs starting with "derived:" — edit their fields (subject, predicate, object) with update_triple (not link_atom).
+15. **Slot nesting**: NEVER call nest_slot proactively. Only on explicit user request. \`link_atom\` and \`update_triple\` on a slot that is already a nested triple are forbidden — the chat must call \`flatten_slot\` first if the user wants to swap the structure.`;
 }
 
 const updateTripleTool = tool({
@@ -258,6 +268,35 @@ const linkAtomTool = tool({
 const splitPostsTool = tool({
   description: "Split claims into separate posts — each active proposal becomes its own post. Use ONLY when the user explicitly asks to split.",
   inputSchema: zodSchema(z.object({})),
+});
+
+const nestSlotTool = tool({
+  description:
+    "Convert a subject or object slot from a simple atom to a nested triple. " +
+    "ONLY on explicit user request (never proactive). Predicate slot cannot be nested — simplify it with update_triple and move complexity into S or O. " +
+    "Avoid chains deeper than 3 levels.",
+  inputSchema: zodSchema(
+    z.object({
+      proposalId: z.string().describe("The proposal whose slot is being nested"),
+      field: z.enum(["subject", "object"]).describe("Which slot to nest (predicate not allowed)"),
+      subject: z.string().min(1).describe("Subject of the inner nested triple"),
+      predicate: z.string().min(1).describe("Predicate of the inner nested triple"),
+      object: z.string().min(1).describe("Object of the inner nested triple"),
+    }),
+  ),
+});
+
+const flattenSlotTool = tool({
+  description:
+    "Flatten a nested triple slot back into a simple atom. " +
+    "Use when the user wants to simplify. The atom label is yours to pick — choose the most natural summary of the nested content.",
+  inputSchema: zodSchema(
+    z.object({
+      proposalId: z.string().describe("The proposal whose slot is being flattened"),
+      field: z.enum(["subject", "object"]).describe("Which slot to flatten"),
+      label: z.string().min(1).describe("The atom label that replaces the nested triple"),
+    }),
+  ),
 });
 
 const updatePostBodyTool = tool({
@@ -322,6 +361,8 @@ export function getRefineStreamConfig(opts: RefineChatOptions) {
       search_atoms: makeSearchAtomsTool(opts.searchAtoms),
       search_triples: makeSearchTriplesTool(opts.searchTriples),
       split_posts: splitPostsTool,
+      nest_slot: nestSlotTool,
+      flatten_slot: flattenSlotTool,
     },
     stopWhen: stepCountIs(5),
   } as const;

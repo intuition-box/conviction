@@ -214,6 +214,90 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
     [],
   );
 
+  const nestSlot = useCallback(
+    (proposalId: string, field: "subject" | "object", inner: { subject: string; predicate: string; object: string }) => {
+      const stableKey = `refine-nested-${proposalId}-${field}-${Date.now()}`;
+      const concatLabel = `${inner.subject} ${inner.predicate} ${inner.object}`;
+
+      setNestedProposals((prev) => [
+        ...prev,
+        {
+          id: stableKey,
+          stableKey,
+          edgeKind: "modifier",
+          predicate: inner.predicate,
+          subject: { type: "atom", atomKey: "", label: inner.subject },
+          object: { type: "atom", atomKey: "", label: inner.object },
+          status: "approved",
+        },
+      ]);
+
+      setProposals((prev) =>
+        prev.map((p) => {
+          if (p.id !== proposalId) return p;
+          if (field === "subject") {
+            return {
+              ...p,
+              subjectNestedKey: stableKey,
+              sText: concatLabel,
+              subjectAtomId: null,
+              subjectMatchedLabel: null,
+              matchedIntuitionTripleTermId: null,
+            };
+          }
+          return {
+            ...p,
+            objectNestedKey: stableKey,
+            oText: concatLabel,
+            objectAtomId: null,
+            objectMatchedLabel: null,
+            matchedIntuitionTripleTermId: null,
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  const flattenSlot = useCallback(
+    (proposalId: string, field: "subject" | "object", label: string) => {
+      const trimmed = label.trim();
+      if (!trimmed) return;
+
+      let removedKey: string | null = null;
+      setProposals((prev) =>
+        prev.map((p) => {
+          if (p.id !== proposalId) return p;
+          if (field === "subject") {
+            removedKey = p.subjectNestedKey ?? null;
+            return {
+              ...p,
+              subjectNestedKey: null,
+              sText: trimmed,
+              subjectAtomId: null,
+              subjectMatchedLabel: null,
+              matchedIntuitionTripleTermId: null,
+            };
+          }
+          removedKey = p.objectNestedKey ?? null;
+          return {
+            ...p,
+            objectNestedKey: null,
+            oText: trimmed,
+            objectAtomId: null,
+            objectMatchedLabel: null,
+            matchedIntuitionTripleTermId: null,
+          };
+        }),
+      );
+
+      if (removedKey) {
+        setNestedProposals((prev) => prev.filter((n) => n.stableKey !== removedKey));
+      }
+    },
+    [],
+  );
+
   async function runExtraction(): Promise<{ ok: boolean; proposalCount: number }> {
     setMessage(null);
     const fail = { ok: false, proposalCount: 0 };
@@ -615,13 +699,24 @@ export function useExtractionFlow({ themes, parentPostId, parentMainTripleTermId
     onChange: crud.updateProposalField,
     onSave: crud.saveProposal,
     onSelectMain: crud.selectMain,
-    onReject: crud.rejectProposal,
+    onReject: (proposalId: string) => {
+      const target = proposals.find((p) => p.id === proposalId);
+      const orphanKeys = [target?.subjectNestedKey, target?.objectNestedKey].filter(
+        (k): k is string => Boolean(k),
+      );
+      crud.rejectProposal(proposalId);
+      if (orphanKeys.length > 0) {
+        setNestedProposals((prev) => prev.filter((n) => !orphanKeys.includes(n.stableKey)));
+      }
+    },
     onLock: crud.lockProposalAtom,
     onUnlock: crud.unlockProposalAtom,
     onAddDraft: crud.addDraftProposal,
     onAddTriple: crud.addTripleFromChat,
     onPropagateAtom: (text, id, label, metrics) => crud.propagateAtomLock(text, id, label, draftPosts, metrics),
     onSetNewTermLocal: crud.setNewTermLocal,
+    onNestSlot: nestSlot,
+    onFlattenSlot: flattenSlot,
   };
 
   const draftActions: DraftActions = {

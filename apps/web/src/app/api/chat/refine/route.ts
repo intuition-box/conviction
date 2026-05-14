@@ -110,6 +110,13 @@ function guardToolCall(
     const proposal = proposals.find((p) => p.id === proposalId);
     if (!proposal) return proposalId.startsWith("nested:") ? null : `Proposal ${proposalId} not found.`;
 
+    if (field === "subject" && proposal.subjectNestedKey) {
+      return "Subject slot is a nested triple — call flatten_slot first if you want to swap the structure.";
+    }
+    if (field === "object" && proposal.objectNestedKey) {
+      return "Object slot is a nested triple — call flatten_slot first if you want to swap the structure.";
+    }
+
     const refText = (proposal.postNumber != null && draftPosts?.[proposal.postNumber - 1]?.body) || sourceText;
 
     const proposed = {
@@ -153,6 +160,13 @@ function guardToolCall(
     const proposal = proposals.find((p) => p.id === proposalId);
     if (!proposal) return `Proposal ${proposalId} not found.`;
 
+    if (field === "subject" && proposal.subjectNestedKey) {
+      return "Subject slot is a nested triple — call flatten_slot first if you want an atom there.";
+    }
+    if (field === "object" && proposal.objectNestedKey) {
+      return "Object slot is a nested triple — call flatten_slot first if you want an atom there.";
+    }
+
     const refText = (proposal.postNumber != null && draftPosts?.[proposal.postNumber - 1]?.body) || sourceText;
 
     const proposed = {
@@ -164,6 +178,56 @@ function guardToolCall(
       ? buildNestedEdgeContexts(proposal.stableKey, serverNestedEdges, serverNestedRefLabels)
       : undefined;
     const blocked = checkRelevance(proposed, refText, nestedCtx);
+    if (blocked) return blocked;
+  }
+
+  if (name === "nest_slot") {
+    const proposalId = args.proposalId as string;
+    const field = args.field as string;
+    const subject = (args.subject as string)?.trim();
+    const predicate = (args.predicate as string)?.trim();
+    const object = (args.object as string)?.trim();
+    if (field !== "subject" && field !== "object") return "nest_slot field must be 'subject' or 'object'.";
+    if (!subject || !predicate || !object) return "nest_slot requires non-empty inner subject, predicate, and object.";
+    if (isHexId(subject) || isHexId(predicate) || isHexId(object)) return "Use human-readable labels, not on-chain IDs.";
+    const proposal = proposals.find((p) => p.id === proposalId);
+    if (!proposal) return `Proposal ${proposalId} not found.`;
+    if (proposal.outermostMainKey) {
+      return "This proposal is embedded in a conditional structure — the current data model can't represent both. Flatten the conditional first if you need slot-level nesting.";
+    }
+    if (field === "subject" && proposal.subjectNestedKey) return "Subject slot is already a nested triple — use flatten_slot first to swap structure.";
+    if (field === "object" && proposal.objectNestedKey) return "Object slot is already a nested triple — use flatten_slot first to swap structure.";
+
+    const refText = (proposal.postNumber != null && draftPosts?.[proposal.postNumber - 1]?.body) || sourceText;
+    const concatLabel = `${subject} ${predicate} ${object}`;
+    const proposed = {
+      subject: field === "subject" ? concatLabel : proposal.subject,
+      predicate: proposal.predicate,
+      object: field === "object" ? concatLabel : proposal.object,
+    };
+    const blocked = checkRelevance(proposed, refText);
+    if (blocked) return blocked;
+  }
+
+  if (name === "flatten_slot") {
+    const proposalId = args.proposalId as string;
+    const field = args.field as string;
+    const label = (args.label as string)?.trim();
+    if (field !== "subject" && field !== "object") return "flatten_slot field must be 'subject' or 'object'.";
+    if (!label) return "flatten_slot requires a non-empty label.";
+    if (isHexId(label)) return "Use a human-readable label, not an on-chain ID.";
+    const proposal = proposals.find((p) => p.id === proposalId);
+    if (!proposal) return `Proposal ${proposalId} not found.`;
+    const isNested = field === "subject" ? Boolean(proposal.subjectNestedKey) : Boolean(proposal.objectNestedKey);
+    if (!isNested) return `${field} slot is not nested — nothing to flatten.`;
+
+    const refText = (proposal.postNumber != null && draftPosts?.[proposal.postNumber - 1]?.body) || sourceText;
+    const proposed = {
+      subject: field === "subject" ? label : proposal.subject,
+      predicate: proposal.predicate,
+      object: field === "object" ? label : proposal.object,
+    };
+    const blocked = checkRelevance(proposed, refText);
     if (blocked) return blocked;
   }
 
@@ -246,6 +310,34 @@ function applyAcceptedToolCall(
     let postNum = 1;
     for (const p of mutableProposals) {
       p.postNumber = postNum++;
+    }
+  } else if (name === "nest_slot") {
+    const proposal = mutableProposals.find((p) => p.id === args.proposalId);
+    if (proposal && (args.field === "subject" || args.field === "object")) {
+      const subject = (args.subject as string)?.trim() ?? "";
+      const predicate = (args.predicate as string)?.trim() ?? "";
+      const object = (args.object as string)?.trim() ?? "";
+      const concatLabel = `${subject} ${predicate} ${object}`;
+      const nestedKey = `refine-nested-${proposal.id}-${args.field}-${Date.now()}`;
+      if (args.field === "subject") {
+        proposal.subject = concatLabel;
+        proposal.subjectNestedKey = nestedKey;
+      } else {
+        proposal.object = concatLabel;
+        proposal.objectNestedKey = nestedKey;
+      }
+    }
+  } else if (name === "flatten_slot") {
+    const proposal = mutableProposals.find((p) => p.id === args.proposalId);
+    if (proposal && (args.field === "subject" || args.field === "object")) {
+      const label = (args.label as string)?.trim() ?? "";
+      if (args.field === "subject") {
+        proposal.subject = label;
+        proposal.subjectNestedKey = null;
+      } else {
+        proposal.object = label;
+        proposal.objectNestedKey = null;
+      }
     }
   }
 }
