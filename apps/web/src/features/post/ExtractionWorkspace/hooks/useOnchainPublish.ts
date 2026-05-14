@@ -409,12 +409,39 @@ export function useOnchainPublish({
 
         setPublishStep("claims");
 
+        // Refine-nested triples used as slot refs must be resolved BEFORE their parents.
+        const slotNestedKeys = new Set<string>();
+        for (const { proposal } of toResolve) {
+          if (proposal.subjectNestedKey) slotNestedKeys.add(proposal.subjectNestedKey);
+          if (proposal.objectNestedKey) slotNestedKeys.add(proposal.objectNestedKey);
+        }
+        const slotNestedTermIds = new Map<string, string>();
+        if (slotNestedKeys.size > 0) {
+          const slotNestedEdges = visibleNestedProposals.filter((n) => slotNestedKeys.has(n.stableKey));
+          if (slotNestedEdges.length > 0) {
+            const earlyResolved = new Map<string, string>();
+            await resolveNestedTriples({
+              nestedProposals: slotNestedEdges,
+              resolvedTripleMap: earlyResolved,
+              atomMap: atomResult.atomMap,
+              ctx,
+              preResolvedNested: resolutionMap?.nestedTriples,
+            });
+            for (const [stableKey, termId] of earlyResolved) {
+              slotNestedTermIds.set(stableKey, termId);
+            }
+          }
+        }
+
         if (toResolve.length > 0) {
-          const tripleResult = await resolveTriples(toResolve, atomResult.atomMap, resolvedByIndex, ctx, directMainProposalIds, resolutionMap?.flatTriples);
+          const tripleResult = await resolveTriples(toResolve, atomResult.atomMap, resolvedByIndex, ctx, directMainProposalIds, resolutionMap?.flatTriples, slotNestedTermIds);
           tripleTxHash = tripleResult.tripleTxHash;
         }
 
         const resolvedTripleMap = buildResolvedTripleMap(resolvedByIndex, publishableProposals);
+        for (const [stableKey, termId] of slotNestedTermIds) {
+          if (!resolvedTripleMap.has(stableKey)) resolvedTripleMap.set(stableKey, termId);
+        }
 
         const matchedStableKeys = new Set<string>();
         if (fullTreeMatchDraftIds?.size) {

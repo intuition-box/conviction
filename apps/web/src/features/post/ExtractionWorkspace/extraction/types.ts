@@ -54,6 +54,10 @@ export type ProposalDraft = {
   groupKey: string;
 
   outermostMainKey: string | null;
+  /** Refine-chat nesting: stableKey of a NestedProposalDraft replacing the subject atom. Mutually exclusive with outermostMainKey. */
+  subjectNestedKey?: string | null;
+  /** Refine-chat nesting: stableKey of a NestedProposalDraft replacing the object atom. Mutually exclusive with outermostMainKey. */
+  objectNestedKey?: string | null;
   saved: {
     sText: string;
     pText: string;
@@ -146,6 +150,8 @@ export type ProposalActions = {
   onAddTriple: (subject: string, predicate: string, object: string, targetDraftId?: string) => void;
   onPropagateAtom: (sourceSlotText: string, atomId: string, label: string, metrics?: { holders: number | null; marketCap: number | null }) => PropagationResult;
   onSetNewTermLocal: (proposalId: string, field: "sText" | "pText" | "oText", label: string) => void;
+  onNestSlot: (proposalId: string, field: "subject" | "object", inner: { subject: string; predicate: string; object: string }) => void;
+  onFlattenSlot: (proposalId: string, field: "subject" | "object", label: string) => void;
 };
 
 export type DraftActions = {
